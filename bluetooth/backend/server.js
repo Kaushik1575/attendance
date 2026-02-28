@@ -14,25 +14,36 @@ const PORT = process.env.PORT || 5000
 // --- Middleware ---
 const allowedOrigins = [
     'https://att-m1rz.vercel.app',
+    'https://geoatnd-e6yi.vercel.app',
     'http://localhost:5173',
     'http://localhost:3000'
 ];
 
 app.use(cors({
     origin: (origin, callback) => {
-        if (!origin) return callback(null, true);
-        if (allowedOrigins.indexOf(origin) === -1) {
-            return callback(null, true); // Allow during transition, but log as reminder
+        // Allow if origin is localhost or ends with .vercel.app
+        const isVercel = origin && origin.endsWith('.vercel.app');
+        const isLocal = !origin || origin.startsWith('http://localhost:');
+
+        if (isVercel || isLocal || allowedOrigins.includes(origin)) {
+            callback(null, true);
+        } else {
+            callback(new Error('Not allowed by CORS'));
         }
-        return callback(null, true);
     },
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
     credentials: true
 }));
 
-// Pre-flight OPTIONS handling
-app.options('*', cors());
+// Robust pre-flight handling
+app.options('*', (req, res) => {
+    res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
+    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    res.header('Access-Control-Allow-Credentials', 'true');
+    res.sendStatus(200);
+});
 
 // Middleware to neutralize double slashes
 app.use((req, res, next) => {
