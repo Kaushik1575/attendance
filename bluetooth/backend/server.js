@@ -267,7 +267,7 @@ const notifyAbsentees = async (sessionId, branch, section, semester, subject) =>
                             
                             <div style="background: #f8fafc; padding: 15px; border-radius: 8px; margin: 15px 0; border: 1px solid #f1f5f9;">
                                 <p style="margin: 0; font-size: 18px; font-weight: 800; color: #0f172a;">${subject}</p>
-                                <p style="margin: 4px 0 0 0; font-size: 13px; color: #64748b;">Date: ${new Date().toLocaleDateString()}</p>
+                                <p style="margin: 4px 0 0 0; font-size: 13px; color: #64748b;">Date: ${new Date().toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata', day: '2-digit', month: 'short', year: 'numeric' })}</p>
                             </div>
 
                             <p style="font-size: 13px; color: #ef4444; font-weight: 600;">⚠️ Absence from lectures may impact your internal grades and exam eligibility.</p>
