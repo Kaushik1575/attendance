@@ -209,11 +209,16 @@ const StudentDashboard = () => {
 
         const d = getDistance(activeSession.teacher_lat, activeSession.teacher_lng, liveLocation.lat, liveLocation.lng);
         setLiveDistance(d);
-        const effectiveDist = Math.max(0, d - locationAccuracy);
-        if (locationAccuracy > 60 && effectiveDist > 50) {
+
+        // --- INDUSTRIAL FIX: Accuracy-Adjusted Tolerance ---
+        // Subtract error (accuracy) from distance. Add small 10m buffer for indoor drift.
+        const effectiveDist = Math.max(0, d - locationAccuracy - 10);
+
+        if (locationAccuracy > 70 && effectiveDist > 70) {
             setGpsStatus('scanning');
         } else {
-            setGpsStatus(effectiveDist <= 50 ? 'ok' : 'blocked');
+            // Allow up to 100m raw distance for soft-lock, as long as adjusted distance is OK.
+            setGpsStatus(effectiveDist <= 70 ? 'ok' : 'blocked');
         }
     }, [activeSession, liveLocation, locationAccuracy, isDemoMode]);
 
@@ -269,10 +274,11 @@ const StudentDashboard = () => {
             setLiveLocation({ lat: loc.lat, lng: loc.lng });
 
             // Clientside soft-check (matches backend logic)
-            if (effectiveDist > 65) { // Slightly more generous buffer (65m vs 50m) to account for indoor drift
-                const err = `Outside range (${dist.toFixed(0)}m). Please move closer to the professor.`;
+            // --- INDUSTRIAL FIX: Forgiving Range for Indoor Classrooms (120m max) ---
+            if (effectiveDist > 70) {
+                const err = `Still too far (${dist.toFixed(0)}m). Please move closer to the classroom door or a window for better GPS.`;
                 setError(err);
-                toast.error(err);
+                toast.error(err, { duration: 5000 });
                 setMarking(false);
                 return;
             }
@@ -328,7 +334,7 @@ const StudentDashboard = () => {
     };
 
     const formatTime = (s) => `${Math.floor(s / 60)}:${(s % 60).toString().padStart(2, '0')}`;
-    const timerColor = sessionTimeLeft < 30 ? '#ef4444' : sessionTimeLeft < 60 ? '#f59e0b' : '#22c5e0';
+    const timerColor = sessionTimeLeft < 30 ? '#ef4444' : sessionTimeTimeLeft < 60 ? '#f59e0b' : '#22c5e0';
 
     const gpsColors = {
         idle: { bg: '#f8fafc', border: '#e2e8f0', text: '#64748b', icon: <Navigation size={22} color="#94a3b8" /> },
@@ -461,8 +467,27 @@ const StudentDashboard = () => {
                                         transition: 'width 0.5s ease-out'
                                     }} />
                                 </div>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.7rem', color: '#64748b', fontWeight: 700 }}>
-                                    <span style={{ color: '#10b981' }}>✅ Allowed zone:</span> within <strong>50 meters</strong> of teacher
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginTop: '0.5rem' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.7rem', color: '#64748b', fontWeight: 700 }}>
+                                        <span style={{ color: '#10b981' }}>✅ Allowed zone:</span> within <strong>70m</strong>
+                                    </div>
+                                    <button
+                                        onClick={() => {
+                                            setGpsStatus('scanning');
+                                            getCurrentLocation().then(loc => {
+                                                setLiveLocation({ lat: loc.lat, lng: loc.lng });
+                                                setLocationAccuracy(loc.accuracy);
+                                                toast.success('GPS Refreshed!');
+                                            }).catch(err => toast.error('GPS Refresh failed. Check Permissions.'));
+                                        }}
+                                        style={{
+                                            background: '#f1f5f9', border: 'none', borderRadius: '6px', padding: '0.3rem 0.6rem',
+                                            fontSize: '0.65rem', fontWeight: 800, color: '#4f46e5', cursor: 'pointer',
+                                            display: 'flex', alignItems: 'center', gap: '0.3rem'
+                                        }}
+                                    >
+                                        <RefreshCw size={10} /> FORCE REFRESH
+                                    </button>
                                 </div>
                             </div>
                         </div>

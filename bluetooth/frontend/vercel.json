@@ -3,7 +3,7 @@
     "routes": [
         {
             "src": "/api/(.*)",
-            "dest": "https://att-indol.vercel.app/api/$1"
+            "dest": "https://geoattend-xi.vercel.app/api/$1"
         },
         {
             "src": "/assets/(.*)",

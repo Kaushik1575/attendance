@@ -155,6 +155,7 @@ const Login = () => {
                                 <input
                                     className="input"
                                     type="email"
+                                    autoComplete="username"
                                     value={email}
                                     onChange={(e) => setEmail(e.target.value)}
                                     placeholder={role === 'teacher' ? 'faculty@college.edu' : 'student@college.edu'}
@@ -171,6 +172,7 @@ const Login = () => {
                                 <input
                                     className="input"
                                     type="password"
+                                    autoComplete="current-password"
                                     value={password}
                                     onChange={(e) => setPassword(e.target.value)}
                                     placeholder="••••••••"

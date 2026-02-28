@@ -926,7 +926,7 @@ app.post('/api/attendance/mark', verifyToken, async (req, res) => {
     }
 
     // 4.6. Verify Location (Accuracy-Aware Geo-fence)
-    const GEOFENCE_RADIUS = 50  // meters — practical for indoor mobile GPS
+    const GEOFENCE_RADIUS = 70  // middle ground for indoor reliability
     const distance = getDistance(session.teacher_lat, session.teacher_lng, lat, lng)
     const gpsAccuracy = parseFloat(accuracy) || 0  // student's GPS accuracy in meters
 

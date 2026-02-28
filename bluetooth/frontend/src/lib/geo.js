@@ -21,7 +21,7 @@ export function getCurrentLocation() {
             return;
         }
 
-        // Try high-accuracy first (30s timeout)
+        // 🚨 IMPORTANT: maximumAge: 0 forces a fresh hardware read (no caching)
         navigator.geolocation.getCurrentPosition(
             (position) => {
                 resolve({
@@ -31,24 +31,20 @@ export function getCurrentLocation() {
                 });
             },
             (error) => {
-                // If high-accuracy times out or fails, fall back to low-accuracy
-                if (error.code === error.TIMEOUT || error.code === error.POSITION_UNAVAILABLE) {
-                    navigator.geolocation.getCurrentPosition(
-                        (position) => {
-                            resolve({
-                                lat: position.coords.latitude,
-                                lng: position.coords.longitude,
-                                accuracy: position.coords.accuracy
-                            });
-                        },
-                        (err) => reject(err),
-                        { enableHighAccuracy: false, timeout: 20000, maximumAge: 60000 }
-                    );
-                } else {
-                    reject(error);
-                }
+                // Secondary check for non-high accuracy (faster, but less precise)
+                navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                        resolve({
+                            lat: position.coords.latitude,
+                            lng: position.coords.longitude,
+                            accuracy: position.coords.accuracy
+                        });
+                    },
+                    (err) => reject(err),
+                    { enableHighAccuracy: false, timeout: 5000, maximumAge: 0 }
+                );
             },
-            { enableHighAccuracy: true, timeout: 30000, maximumAge: 10000 }
+            { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 }
         );
     });
 }
