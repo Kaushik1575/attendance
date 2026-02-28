@@ -334,7 +334,7 @@ const StudentDashboard = () => {
     };
 
     const formatTime = (s) => `${Math.floor(s / 60)}:${(s % 60).toString().padStart(2, '0')}`;
-    const timerColor = sessionTimeLeft < 30 ? '#ef4444' : sessionTimeTimeLeft < 60 ? '#f59e0b' : '#22c5e0';
+    const timerColor = sessionTimeLeft < 30 ? '#ef4444' : sessionTimeLeft < 60 ? '#f59e0b' : '#22c5e0';
 
     const gpsColors = {
         idle: { bg: '#f8fafc', border: '#e2e8f0', text: '#64748b', icon: <Navigation size={22} color="#94a3b8" /> },
