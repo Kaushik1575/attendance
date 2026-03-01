@@ -41,6 +41,11 @@ const SessionHistory = () => {
         return sessionDate === dateFilter;
     });
 
+    // Helper to check if a session is currently active
+    const isSessionLive = (session) => {
+        return session && session.status === 'active' && new Date(session.expiry_time) > new Date();
+    };
+
     // Auto-select first session when filter results change
     useEffect(() => {
         if (filteredSessions.length > 0) {
@@ -297,7 +302,18 @@ const SessionHistory = () => {
                                         position: 'relative'
                                     }}
                                 >
-                                    <div style={{ fontWeight: 800, fontSize: '1rem', marginBottom: '0.4rem' }}>{s.subject}</div>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
+                                        <div style={{ fontWeight: 800, fontSize: '1rem' }}>{s.subject}</div>
+                                        {isSessionLive(s) && (
+                                            <div style={{
+                                                fontSize: '0.65rem', fontWeight: 800, color: '#ef4444',
+                                                background: '#fef2f2', padding: '0.2rem 0.6rem', borderRadius: '12px',
+                                                border: '1px solid #fecaca', animation: 'pulse 1.5s infinite'
+                                            }}>
+                                                🔴 LIVE
+                                            </div>
+                                        )}
+                                    </div>
                                     <div style={{ fontSize: '0.8rem', opacity: 0.8, display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                                         <Calendar size={12} /> {new Date(s.start_time).toLocaleDateString()}
                                     </div>
@@ -326,11 +342,30 @@ const SessionHistory = () => {
                             <div style={{ padding: isMobile ? '1.5rem' : '2rem', borderBottom: '1px solid #f1f5f9' }}>
                                 <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: isMobile ? '1rem' : 0, justifyContent: 'space-between', alignItems: isMobile ? 'flex-start' : 'flex-start', marginBottom: '2rem' }}>
                                     <div>
-                                        <div style={{ fontSize: '0.8rem', color: '#4f46e5', fontWeight: 800, textTransform: 'uppercase', marginBottom: '0.25rem' }}>Active View</div>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
+                                            <div style={{ fontSize: '0.8rem', color: '#4f46e5', fontWeight: 800, textTransform: 'uppercase' }}>Active View</div>
+                                            {isSessionLive(selectedSession) && (
+                                                <div style={{
+                                                    fontSize: '0.65rem', fontWeight: 800, color: 'white',
+                                                    background: '#ef4444', padding: '0.1rem 0.5rem', borderRadius: '4px',
+                                                    animation: 'pulse 1.5s infinite'
+                                                }}>
+                                                    LIVE
+                                                </div>
+                                            )}
+                                        </div>
                                         <h2 style={{ fontSize: isMobile ? '1.5rem' : '1.75rem', fontWeight: 900, color: '#1e293b', margin: 0 }}>{selectedSession.subject}</h2>
                                         <p style={{ color: '#64748b', fontSize: '0.95rem', marginTop: '0.5rem' }}>
                                             {selectedSession.branch} Section {selectedSession.section} • {new Date(selectedSession.start_time).toLocaleDateString()}
                                         </p>
+
+                                        {/* OTP Display for LIVE sessions */}
+                                        {isSessionLive(selectedSession) && (
+                                            <div style={{ marginTop: '1rem', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '0.75rem 1.25rem', display: 'inline-flex', alignItems: 'center', gap: '1rem' }}>
+                                                <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>Class OTP</span>
+                                                <span style={{ fontSize: '1.75rem', fontWeight: 900, color: '#1e293b', letterSpacing: '4px' }}>{selectedSession.otp}</span>
+                                            </div>
+                                        )}
                                     </div>
                                     <div style={{ textAlign: isMobile ? 'left' : 'right', borderTop: isMobile ? '1px solid #e2e8f0' : 'none', paddingTop: isMobile ? '1rem' : 0, width: isMobile ? '100%' : 'auto' }}>
                                         <div style={{ fontSize: '2.5rem', fontWeight: 900, color: '#4f46e5', lineHeight: 1 }}>{filteredRecords.length}</div>
