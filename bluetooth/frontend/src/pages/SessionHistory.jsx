@@ -93,7 +93,12 @@ const SessionHistory = () => {
 
     const handleSessionSelect = (session) => {
         setSelectedSession(session);
-        setFilteredRecords(session.records || []);
+        const sortedRecords = [...(session.records || [])].sort((a, b) => {
+            const rollA = a.students?.roll_no?.toString().toLowerCase() || '';
+            const rollB = b.students?.roll_no?.toString().toLowerCase() || '';
+            return rollA.localeCompare(rollB, undefined, { numeric: true, sensitivity: 'base' });
+        });
+        setFilteredRecords(sortedRecords);
         setSearchTerm(''); // Reset search when changing sessions
     };
 
@@ -105,7 +110,12 @@ const SessionHistory = () => {
                 (r.students?.name || '').toLowerCase().includes(term) ||
                 (r.students?.roll_no || '').toLowerCase().includes(term)
             );
-            setFilteredRecords(filtered);
+            const sortedRecords = [...filtered].sort((a, b) => {
+                const rollA = a.students?.roll_no?.toString().toLowerCase() || '';
+                const rollB = b.students?.roll_no?.toString().toLowerCase() || '';
+                return rollA.localeCompare(rollB, undefined, { numeric: true, sensitivity: 'base' });
+            });
+            setFilteredRecords(sortedRecords);
         }
     };
 
