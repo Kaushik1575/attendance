@@ -245,16 +245,16 @@ const SessionHistory = () => {
                 <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', height: '64px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
                         <button onClick={() => navigate('/teacher/dashboard')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#4f46e5', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                            <ArrowLeft size={20} />
+                            <ArrowLeft size={isMobile ? 18 : 20} />
                         </button>
-                        <h1 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#1e293b', margin: 0 }}>Attendance Record</h1>
+                        <h1 style={{ fontSize: isMobile ? '1rem' : '1.25rem', fontWeight: 800, color: '#1e293b', margin: 0 }}>Attendance Record</h1>
                     </div>
                     <button onClick={logout} style={{ color: '#ef4444', fontWeight: 700, background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.9rem' }}>Logout</button>
                 </div>
             </nav>
 
-            <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '2rem 1.5rem' }}>
-                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '320px 1fr', gap: '2rem' }}>
+            <div style={{ maxWidth: '1200px', margin: '0 auto', padding: isMobile ? '1rem' : '2rem 1.5rem' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '320px 1fr', gap: isMobile ? '1.5rem' : '2rem' }}>
 
                     {/* LEFT: SESSION LIST & FILTER */}
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
@@ -323,22 +323,22 @@ const SessionHistory = () => {
                     {/* RIGHT: STUDENT LIST */}
                     {selectedSession ? (
                         <div style={{ background: 'white', borderRadius: '24px', border: '1px solid #e2e8f0', overflow: 'hidden', display: 'flex', flexDirection: 'column', boxShadow: '0 4px 12px rgba(0,0,0,0.02)' }}>
-                            <div style={{ padding: '2rem', borderBottom: '1px solid #f1f5f9' }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '2rem' }}>
+                            <div style={{ padding: isMobile ? '1.5rem' : '2rem', borderBottom: '1px solid #f1f5f9' }}>
+                                <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: isMobile ? '1rem' : 0, justifyContent: 'space-between', alignItems: isMobile ? 'flex-start' : 'flex-start', marginBottom: '2rem' }}>
                                     <div>
                                         <div style={{ fontSize: '0.8rem', color: '#4f46e5', fontWeight: 800, textTransform: 'uppercase', marginBottom: '0.25rem' }}>Active View</div>
-                                        <h2 style={{ fontSize: '1.75rem', fontWeight: 900, color: '#1e293b', margin: 0 }}>{selectedSession.subject}</h2>
+                                        <h2 style={{ fontSize: isMobile ? '1.5rem' : '1.75rem', fontWeight: 900, color: '#1e293b', margin: 0 }}>{selectedSession.subject}</h2>
                                         <p style={{ color: '#64748b', fontSize: '0.95rem', marginTop: '0.5rem' }}>
                                             {selectedSession.branch} Section {selectedSession.section} • {new Date(selectedSession.start_time).toLocaleDateString()}
                                         </p>
                                     </div>
-                                    <div style={{ textAlign: 'right' }}>
+                                    <div style={{ textAlign: isMobile ? 'left' : 'right', borderTop: isMobile ? '1px solid #e2e8f0' : 'none', paddingTop: isMobile ? '1rem' : 0, width: isMobile ? '100%' : 'auto' }}>
                                         <div style={{ fontSize: '2.5rem', fontWeight: 900, color: '#4f46e5', lineHeight: 1 }}>{filteredRecords.length}</div>
                                         <div style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 800, textTransform: 'uppercase' }}>Students Present</div>
                                     </div>
                                 </div>
 
-                                <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+                                <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: '1rem', alignItems: isMobile ? 'stretch' : 'center' }}>
                                     <div style={{ position: 'relative', flex: 1 }}>
                                         <Search style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} size={16} />
                                         <input
@@ -349,14 +349,14 @@ const SessionHistory = () => {
                                             style={{ width: '100%', padding: '0.85rem 1rem 0.85rem 2.5rem', borderRadius: '12px', border: '1px solid #e2e8f0', outline: 'none', fontSize: '0.9rem', background: '#f8fafc' }}
                                         />
                                     </div>
-                                    <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-                                        <button onClick={() => sendEmailReport('HOD', 'jyotiranjansahoo485@gmail.com')} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.85rem 1rem', borderRadius: '12px', background: '#e0e7ff', color: '#4338ca', border: 'none', fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' }}>
+                                    <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', justifyContent: isMobile ? 'stretch' : 'flex-end', width: isMobile ? '100%' : 'auto' }}>
+                                        <button onClick={() => sendEmailReport('HOD', 'jyotiranjansahoo485@gmail.com')} style={{ flex: isMobile ? 1 : 'none', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.4rem', padding: '0.85rem 1rem', borderRadius: '12px', background: '#e0e7ff', color: '#4338ca', border: 'none', fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap', fontSize: isMobile ? '0.8rem' : '0.9rem' }}>
                                             <Mail size={18} /> Send HOD
                                         </button>
-                                        <button onClick={() => sendEmailReport('Principal', 'jyotiranjansahoo485@gmail.com')} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.85rem 1rem', borderRadius: '12px', background: '#e0e7ff', color: '#4338ca', border: 'none', fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' }}>
+                                        <button onClick={() => sendEmailReport('Principal', 'jyotiranjansahoo485@gmail.com')} style={{ flex: isMobile ? 1 : 'none', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.4rem', padding: '0.85rem 1rem', borderRadius: '12px', background: '#e0e7ff', color: '#4338ca', border: 'none', fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap', fontSize: isMobile ? '0.8rem' : '0.9rem' }}>
                                             <Mail size={18} /> Send Principal
                                         </button>
-                                        <button onClick={downloadPDF} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.85rem 1.5rem', borderRadius: '12px', background: '#4f46e5', color: 'white', border: 'none', fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' }}>
+                                        <button onClick={downloadPDF} style={{ flex: isMobile ? '1 1 100%' : 'none', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem', padding: '0.85rem 1.5rem', borderRadius: '12px', background: '#4f46e5', color: 'white', border: 'none', fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap', marginTop: isMobile ? '0.2rem' : 0 }}>
                                             <FileText size={18} /> Export PDF
                                         </button>
                                     </div>

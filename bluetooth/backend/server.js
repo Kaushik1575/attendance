@@ -804,6 +804,41 @@ app.get('/api/sessions/active', verifyToken, async (req, res) => {
     }
 })
 
+// Get Active Session for Teacher (Reconnect logic)
+app.get('/api/sessions/teacher/active', verifyToken, async (req, res) => {
+    if (req.user.role !== 'teacher') return res.status(403).json({ error: 'Forbidden' })
+    const now = new Date()
+
+    if (supabase) {
+        const { data, error } = await supabase.from('attendance_sessions')
+            .select('*')
+            .eq('teacher_id', req.user.id)
+            .eq('status', 'active')
+            .gt('expiry_time', now.toISOString())
+            .order('start_time', { ascending: false })
+            .limit(1)
+
+        if (error || !data || data.length === 0) return res.json(null)
+
+        const session = data[0];
+        // Normalize columns
+        session.teacher_lat = session.teacher_lat || session.lat;
+        session.teacher_lng = session.teacher_lng || session.lng;
+        return res.json(session)
+    } else {
+        const session = mockSessions.find(s =>
+            s.teacher_id === req.user.id &&
+            s.status === 'active' &&
+            new Date(s.expiry_time) > now
+        )
+        if (session) {
+            session.teacher_lat = session.teacher_lat || session.lat;
+            session.teacher_lng = session.teacher_lng || session.lng;
+        }
+        return res.json(session || null)
+    }
+})
+
 
 // Mark Attendance (Student)
 app.post('/api/attendance/mark', verifyToken, async (req, res) => {
