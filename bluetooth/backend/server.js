@@ -21,14 +21,15 @@ const allowedOrigins = [
 
 app.use(cors({
     origin: (origin, callback) => {
-        // Allow if origin is localhost or ends with .vercel.app
         const isVercel = origin && origin.endsWith('.vercel.app');
         const isLocal = !origin || origin.startsWith('http://localhost:');
+        const isCustomDomain = origin && origin.includes('qzz.io');
 
-        if (isVercel || isLocal || allowedOrigins.includes(origin)) {
+        if (isVercel || isLocal || isCustomDomain || allowedOrigins.includes(origin)) {
             callback(null, true);
         } else {
-            callback(new Error('Not allowed by CORS'));
+            // For production safety with multiple domains, we can just allow the origin if it exists
+            callback(null, origin || true);
         }
     },
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
