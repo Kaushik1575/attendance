@@ -146,6 +146,9 @@ const SessionHistory = () => {
             doc.text(`Attendance Report: ${selectedSession.subject}`, textStartX, 18);
             doc.setFontSize(11);
             doc.text(`Date: ${new Date(selectedSession.start_time).toLocaleDateString()} | Branch: ${selectedSession.branch}-${selectedSession.section}`, textStartX, 26);
+            if (selectedSession.time_slot) {
+                doc.text(`Time Slot: ${selectedSession.time_slot}`, textStartX, 32);
+            }
 
             const tableColumn = ["#", "Student Name", "Roll Number", "Status", "Time"];
             const tableRows = filteredRecords.map((r, i) => [
@@ -159,7 +162,7 @@ const SessionHistory = () => {
             autoTable(doc, {
                 head: [tableColumn],
                 body: tableRows,
-                startY: logoAdded ? 40 : 35,
+                startY: logoAdded ? 45 : 40,
                 theme: 'striped'
             });
 
@@ -197,6 +200,9 @@ const SessionHistory = () => {
             doc.text(`Attendance Report: ${selectedSession.subject}`, textStartX, 18);
             doc.setFontSize(11);
             doc.text(`Date: ${new Date(selectedSession.start_time).toLocaleDateString()} | Branch: ${selectedSession.branch}-${selectedSession.section}`, textStartX, 26);
+            if (selectedSession.time_slot) {
+                doc.text(`Time Slot: ${selectedSession.time_slot}`, textStartX, 32);
+            }
 
             const tableColumn = ["#", "Student Name", "Roll Number", "Status", "Time"];
             const tableRows = filteredRecords.map((r, i) => [
@@ -210,7 +216,7 @@ const SessionHistory = () => {
             autoTable(doc, {
                 head: [tableColumn],
                 body: tableRows,
-                startY: logoAdded ? 40 : 35,
+                startY: logoAdded ? 45 : 40,
                 theme: 'striped'
             });
 
@@ -233,6 +239,7 @@ const SessionHistory = () => {
                             <li><b>Subject:</b> ${selectedSession.subject}</li>
                             <li><b>Branch:</b> ${selectedSession.branch} - Section ${selectedSession.section}</li>
                             <li><b>Date:</b> ${new Date(selectedSession.start_time).toLocaleDateString()}</li>
+                            <li><b>Time Slot:</b> ${selectedSession.time_slot || 'N/A'}</li>
                             <li><b>Total Present:</b> ${filteredRecords.length} Students</li>
                         </ul>
                         <p>Best Regards,<br/>GeoAttend System</p>
@@ -367,6 +374,7 @@ const SessionHistory = () => {
                                         <h2 style={{ fontSize: isMobile ? '1.5rem' : '1.75rem', fontWeight: 900, color: '#1e293b', margin: 0 }}>{selectedSession.subject}</h2>
                                         <p style={{ color: '#64748b', fontSize: '0.95rem', marginTop: '0.5rem' }}>
                                             {selectedSession.branch} Section {selectedSession.section} • {new Date(selectedSession.start_time).toLocaleDateString()}
+                                            {selectedSession.time_slot && <span style={{ fontWeight: 800 }}> • Class Timing: {selectedSession.time_slot}</span>}
                                         </p>
 
                                         {/* OTP Display for LIVE sessions */}

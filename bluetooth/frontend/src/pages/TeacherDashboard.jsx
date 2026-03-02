@@ -63,10 +63,10 @@ const TeacherDashboard = () => {
     const timeSlots = [
         '08:00 - 09:00',
         '09:00 - 10:00',
-        '10:00 - 11:00',
-        '11:00 - 12:00',
-        '12:00 - 13:00',
-        '13:00 - 14:00',
+        '10:30 - 11:30',
+        '11:30 - 12:30',
+        '12:40 - 01:25',
+        '01:25 - 02:30',
     ];
 
     useEffect(() => {
@@ -352,10 +352,16 @@ const TeacherDashboard = () => {
                                 </div>
                             </div>
 
-                            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '1.25rem', marginBottom: '2rem' }}>
+                            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr 1fr', gap: '1.25rem', marginBottom: '2rem' }}>
                                 <div>
                                     <label style={{ display: 'block', fontWeight: 700, color: '#475569', fontSize: '0.75rem', textTransform: 'uppercase', marginBottom: '0.5rem' }}>Date</label>
                                     <input type="date" value={sessionDate} onChange={e => setSessionDate(e.target.value)} style={{ width: '100%', padding: '0.85rem 1rem', borderRadius: '12px', border: '2px solid #e2e8f0', fontSize: '0.95rem', fontWeight: 700, color: '#1e293b', background: '#f8fafc', outline: 'none' }} />
+                                </div>
+                                <div>
+                                    <label style={{ display: 'block', fontWeight: 700, color: '#475569', fontSize: '0.75rem', textTransform: 'uppercase', marginBottom: '0.5rem' }}>Time Slot</label>
+                                    <select value={timeSlot} onChange={e => setTimeSlot(e.target.value)} style={{ width: '100%', padding: '0.85rem 1rem', borderRadius: '12px', border: '2px solid #e2e8f0', fontSize: '0.95rem', fontWeight: 700, color: '#1e293b', background: '#f8fafc', outline: 'none' }}>
+                                        {timeSlots.map(t => <option key={t} value={t}>{t}</option>)}
+                                    </select>
                                 </div>
                                 <div>
                                     <label style={{ display: 'block', fontWeight: 700, color: '#475569', fontSize: '0.75rem', textTransform: 'uppercase', marginBottom: '0.5rem' }}>Window (Minutes)</label>
