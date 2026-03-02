@@ -1,21 +1,14 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
-import { MapPin, Users, Mail, Eye, EyeOff, AlertCircle, ArrowLeft, GraduationCap, Lock } from 'lucide-react'
+import { Users, Eye, EyeOff, ArrowLeft, GraduationCap, Lock, ShieldCheck, UserCheck } from 'lucide-react'
 import toast from 'react-hot-toast'
-
 import { API } from '../lib/api';
-
-const DEMO_ACCOUNTS = [
-    { name: 'Arjun Sharma', rollNo: '101', password: 'student123' },
-    { name: 'Priya Patel', rollNo: '102', password: 'student123' },
-    { name: 'Rohan Verma', rollNo: '103', password: 'student123' },
-]
 
 export default function StudentLogin() {
     const navigate = useNavigate()
     const { login } = useAuth()
-    const [rollNo, setRollNo] = useState('')
+    const [rollNo, setRollNo] = useState('2302060')
     const [password, setPassword] = useState('student123')
     const [showPassword, setShowPassword] = useState(false)
     const [loading, setLoading] = useState(false)
@@ -70,115 +63,132 @@ export default function StudentLogin() {
         }
     }
 
-    const quickFill = (acc) => {
-        setRollNo(acc.rollNo)
-        setPassword(acc.password)
-    }
-
     return (
-        <div className="min-h-screen flex items-center justify-center px-4 page-enter">
-            <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
-                <div className="absolute top-1/3 right-1/4 w-96 h-96 bg-accent-600/20 rounded-full blur-3xl" />
-                <div className="absolute bottom-1/3 left-1/4 w-80 h-80 bg-primary-700/15 rounded-full blur-3xl" />
+        <div className="min-h-screen grid lg:grid-cols-2">
+            {/* Left Side - Info */}
+            <div className="hidden lg:flex flex-col justify-center px-12 xl:px-24 bg-primary-600 relative overflow-hidden">
+                <div className="absolute top-0 left-0 w-full h-full pointer-events-none opacity-20">
+                    <div className="absolute -top-24 -left-24 w-96 h-96 bg-white/20 rounded-full blur-3xl" />
+                    <div className="absolute -bottom-24 -right-24 w-96 h-96 bg-accent-400/20 rounded-full blur-3xl" />
+                </div>
+
+                <div className="relative z-10">
+                    <div className="w-16 h-16 rounded-2xl bg-white/10 backdrop-blur-md flex items-center justify-center mb-10 border border-white/20 shadow-xl">
+                        <GraduationCap size={32} className="text-white" />
+                    </div>
+
+                    <h1 className="text-5xl font-extrabold text-white mb-6 tracking-tight leading-tight">
+                        Student Hub
+                    </h1>
+
+                    <p className="text-xl text-white/80 mb-12 max-w-md leading-relaxed">
+                        Check-in securely via Bluetooth & GPS. Stay on track with your academic attendance records.
+                    </p>
+
+                    <div className="space-y-6">
+                        <div className="flex items-center gap-4 text-white/90">
+                            <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center border border-white/10">
+                                <ShieldCheck size={20} className="text-accent-300" />
+                            </div>
+                            <span className="font-semibold text-lg">Secure Cloud Verification</span>
+                        </div>
+                        <div className="flex items-center gap-4 text-white/90">
+                            <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center border border-white/10">
+                                <UserCheck size={20} className="text-accent-300" />
+                            </div>
+                            <span className="font-semibold text-lg">Zero-Proxy Protection</span>
+                        </div>
+                    </div>
+                </div>
             </div>
 
-            <div className="w-full max-w-md relative z-10">
-                <button id="student-back-btn" onClick={() => navigate('/')}
-                    className="flex items-center gap-2 text-white/50 hover:text-white mb-8 transition-colors text-sm">
-                    <ArrowLeft size={16} /> Back to Home
-                </button>
-
-                <div className="glass-card p-8">
-                    <div className="text-center mb-8">
-                        <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-accent-500 to-primary-600 
-                            flex items-center justify-center mx-auto mb-4 shadow-glow">
-                            <GraduationCap size={30} className="text-white" />
-                        </div>
-                        <h1 className="font-display text-2xl font-bold text-white mb-1">Student Portal</h1>
-                        <p className="text-white/50 text-sm">Access your attendance records</p>
+            {/* Right Side - Form */}
+            <div className="flex flex-col justify-center py-12 px-6 sm:px-12 lg:px-24 bg-white relative">
+                <div className="max-w-md w-full mx-auto">
+                    <div className="mb-10">
+                        <h2 className="text-4xl font-black text-slate-900 mb-2">Welcome Back</h2>
+                        <p className="text-slate-500 font-medium">Please enter your access details</p>
                     </div>
 
-                    {/* Quick fill */}
-                    <div className="mb-6">
-                        <p className="text-xs text-white/40 mb-2">Quick demo accounts:</p>
-                        <div className="flex flex-wrap gap-2">
-                            {DEMO_ACCOUNTS.map(acc => (
-                                <button
-                                    key={acc.rollNo}
-                                    id={`quick-fill-${acc.name.split(' ')[0].toLowerCase()}`}
-                                    onClick={() => quickFill(acc)}
-                                    className="text-xs bg-white/10 hover:bg-white/20 border border-white/15 rounded-lg px-3 py-1.5 text-white/70 hover:text-white transition-all">
-                                    {acc.name.split(' ')[0]}
-                                </button>
-                            ))}
-                        </div>
-                    </div>
-
-
-
-                    <form id="student-login-form" onSubmit={handleSubmit} className="space-y-5">
+                    <form onSubmit={handleSubmit} className="space-y-6">
                         <div>
-                            <label className="text-sm font-medium text-white/70 block mb-2">
-                                <Users size={14} className="inline mr-1.5" />Roll Number
+                            <label className="text-sm font-bold text-slate-700 block mb-2 uppercase tracking-wider">
+                                Roll Number
                             </label>
-                            <input
-                                id="student-roll-input"
-                                type="text"
-                                value={rollNo}
-                                onChange={e => setRollNo(e.target.value)}
-                                className="input-field"
-                                placeholder="e.g. 101"
-                                required
-                            />
+                            <div className="relative">
+                                <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">
+                                    <GraduationCap size={20} />
+                                </div>
+                                <input
+                                    type="text"
+                                    value={rollNo}
+                                    onChange={e => setRollNo(e.target.value)}
+                                    className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl py-4 pl-12 pr-4 text-slate-900 font-semibold focus:border-primary-500 focus:bg-white transition-all outline-none"
+                                    placeholder="Enter your roll number"
+                                    required
+                                />
+                            </div>
                         </div>
 
                         <div>
-                            <label className="text-sm font-medium text-white/70 block mb-2">
+                            <label className="text-sm font-bold text-slate-700 block mb-2 uppercase tracking-wider">
                                 Password
                             </label>
                             <div className="relative">
+                                <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">
+                                    <Lock size={20} />
+                                </div>
                                 <input
-                                    id="student-password-input"
                                     type={showPassword ? 'text' : 'password'}
                                     value={password}
                                     onChange={e => setPassword(e.target.value)}
-                                    className="input-field pr-11"
+                                    className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl py-4 pl-12 pr-12 text-slate-900 font-semibold focus:border-primary-500 focus:bg-white transition-all outline-none"
                                     placeholder="••••••••"
                                     required
                                 />
                                 <button
                                     type="button"
-                                    id="student-toggle-password"
-                                    onClick={() => setShowPassword(v => !v)}
-                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-white/40 hover:text-white/70 transition-colors">
-                                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                                    onClick={() => setShowPassword(!showPassword)}
+                                    className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                                >
+                                    {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                                 </button>
                             </div>
                         </div>
 
                         <button
-                            id="student-login-submit"
                             type="submit"
                             disabled={loading}
-                            className="btn-primary w-full flex items-center justify-center gap-2">
+                            className="w-full bg-primary-600 hover:bg-primary-700 text-white font-bold py-4 rounded-2xl shadow-xl shadow-primary-500/30 transition-all transform hover:-translate-y-0.5 active:scale-95 disabled:opacity-70 disabled:hover:translate-y-0"
+                        >
                             {loading ? (
-                                <>
-                                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                                    Signing In…
-                                </>
+                                <div className="flex items-center justify-center gap-3">
+                                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                    <span>Signing In...</span>
+                                </div>
                             ) : (
-                                <>
-                                    <Users size={16} /> Sign In as Student
-                                </>
+                                "Sign In"
                             )}
                         </button>
                     </form>
 
-                    <div className="mt-6 pt-5 border-t border-white/10 text-center">
-                        <span className="text-white/40 text-sm">Are you faculty? </span>
-                        <button id="switch-to-admin" onClick={() => navigate('/admin/login')}
-                            className="text-primary-400 hover:text-primary-300 text-sm font-medium transition-colors">
-                            Admin Login →
+                    <div className="mt-10 text-center space-y-4">
+                        <p className="text-slate-500 font-medium">
+                            New student? <button onClick={() => navigate('/register')} className="text-primary-600 font-bold hover:underline">Enroll Now</button>
+                        </p>
+
+                        <button
+                            onClick={() => navigate('/')}
+                            className="flex items-center justify-center gap-2 text-slate-400 hover:text-slate-600 font-semibold mx-auto transition-colors text-sm"
+                        >
+                            <ArrowLeft size={16} /> Return to Home
+                        </button>
+                    </div>
+
+                    <div className="mt-8 pt-8 border-t border-slate-100 text-center">
+                        <button onClick={() => navigate('/admin/login')}
+                            className="text-slate-400 hover:text-primary-600 font-medium text-sm transition-colors">
+                            Admin Login Access →
                         </button>
                     </div>
                 </div>
@@ -186,3 +196,4 @@ export default function StudentLogin() {
         </div>
     )
 }
+
