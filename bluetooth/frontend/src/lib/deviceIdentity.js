@@ -22,25 +22,45 @@ export function getDeviceId() {
 
 /**
  * Get browser + device fingerprint components.
- * CRITICAL FIX: We remove `getDeviceId()` (localStorage) and `navigator.userAgent` 
+ * CRITICAL FIX: We remove `getDeviceId()` (localStorage), `navigator.userAgent`, and `preciseGpsHash`
  * from the proxy fingerprint. This ensures the fingerprint remains IDENTICAL 
  * even if the student switches from Chrome to Edge to Brave on the same phone.
  */
-export function getDeviceFingerprint(preciseGpsHash = '') {
+export function getDeviceFingerprint() {
     const nav = navigator
 
-    // Components that remain identical across different browsers on the EXACT SAME OS/Hardware.
+    // 1. Hardware Anchor: Stable across browsers on same device
     const hardwareAnchor = [
-        screen.width + 'x' + screen.height,
-        screen.colorDepth,
+        (screen.width || 0) + 'x' + (screen.height || 0),
+        screen.colorDepth || 0,
         nav.hardwareConcurrency || 0,
-        Intl.DateTimeFormat().resolvedOptions().timeZone,
+        Intl.DateTimeFormat().resolvedOptions().timeZone || '',
         nav.platform || '',
-        nav.deviceMemory || 0,
         nav.maxTouchPoints || 0
     ].join('|')
 
-    // WebGL Renderer string (e.g., "Adreno (TM) 640") - shared across Chromium/Webkit on same OS
+    // 2. Canvas Fingerprint: Rendering engine behavior (Stable across Chromium/Webkit)
+    let canvasHash = '';
+    try {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = 200;
+        canvas.height = 30;
+        ctx.textBaseline = "top";
+        ctx.font = "14px 'Arial'";
+        ctx.textBaseline = "alphabetic";
+        ctx.fillStyle = "#f60";
+        ctx.fillRect(125, 1, 62, 20);
+        ctx.fillStyle = "#069";
+        ctx.fillText("GeoAttend-AntiProxy", 2, 15);
+        ctx.fillStyle = "rgba(102, 204, 0, 0.7)";
+        ctx.fillText("GeoAttend-AntiProxy", 4, 17);
+        canvasHash = canvas.toDataURL().slice(-100); // Take end of data URL for diversity
+    } catch (e) {
+        canvasHash = 'CanvasError';
+    }
+
+    // 3. WebGL Renderer string: Most stable hardware ID
     let webGL = '';
     try {
         const canvas = document.createElement('canvas');
@@ -51,8 +71,7 @@ export function getDeviceFingerprint(preciseGpsHash = '') {
         }
     } catch (e) { }
 
-    // Precise GPS is the ultimate cross-browser anchor if provided.
-    const finalFingerprintString = preciseGpsHash ? `${hardwareAnchor}|${webGL}|${preciseGpsHash}` : `${hardwareAnchor}|${webGL}`;
+    const finalFingerprintString = `${hardwareAnchor}|${canvasHash}|${webGL}`;
 
     return {
         deviceId: getDeviceId(), // kept for UI only
@@ -61,7 +80,7 @@ export function getDeviceFingerprint(preciseGpsHash = '') {
         screenRes: `${screen.width}×${screen.height}`,
         language: nav.language,
         timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-        fingerprint: hashString(finalFingerprintString), // This will now match exactly across Edge/Brave
+        fingerprint: hashString(finalFingerprintString),
     }
 }
 

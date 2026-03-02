@@ -283,8 +283,7 @@ const StudentDashboard = () => {
                 return;
             }
 
-            const gpsHash = await import('../lib/deviceIdentity').then(m => m.getLocationDeviceId());
-            const fingerprint = getDeviceFingerprint(gpsHash || '');
+            const fingerprint = getDeviceFingerprint();
 
             const res = await fetch(`${API}/api/attendance/mark`, {
                 method: 'POST',

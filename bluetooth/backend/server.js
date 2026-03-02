@@ -1006,42 +1006,57 @@ app.post('/api/attendance/mark', verifyToken, async (req, res) => {
 
     console.log(`[ATTENDANCE] Incoming Request - Student: ${student_id}, Session: ${session_id}, Fingerprint: ${device_fingerprint}`);
 
-    // 4.5. Anti-Proxy Check: Check if this device has already marked attendance for someone else IN THIS SESSION
-    if (device_fingerprint) {
+    // 4.5. Anti-Proxy Check: Check if this device OR IP has already marked attendance for someone else IN THIS SESSION
+    if (device_fingerprint || ip_address) {
         if (supabase) {
-            const { data: fingerprintData, error: fingerprintError } = await supabase
-                .from('attendance_records')
-                .select('student_id')
-                .eq('session_id', session_id)
-                .eq('device_fingerprint', device_fingerprint)
-                .neq('student_id', student_id) // used for another student
-                .limit(1);
+            // Check Fingerprint
+            if (device_fingerprint) {
+                const { data: fingerprintData } = await supabase
+                    .from('attendance_records')
+                    .select('student_id')
+                    .eq('session_id', session_id)
+                    .eq('device_fingerprint', device_fingerprint)
+                    .neq('student_id', student_id)
+                    .limit(1);
 
-            if (fingerprintError) {
-                console.warn(`[ATTENDANCE] Fingerprint check DB error: ${fingerprintError.message}. (Migration likely missing)`);
+                if (fingerprintData && fingerprintData.length > 0) {
+                    console.log(`[ANTI-PROXY] Blocked: Device ${device_fingerprint} already used by Student ID: ${fingerprintData[0].student_id}`);
+                    return res.status(403).json({
+                        error: 'DEVICE ALREADY USED: This mobile device has already been used by another student for this session.'
+                    });
+                }
             }
 
-            if (fingerprintData && fingerprintData.length > 0) {
-                console.log(`[ATTENDANCE] Blocked Proxy Trial: Device ${device_fingerprint} already used by Student ID: ${fingerprintData[0].student_id}`);
-                return res.status(403).json({
-                    error: 'DEVICE ALREADY USED: This mobile device has already been used by another student for this session. One device per student only.'
-                });
+            // Check IP Address (Optional: Add a toggle if this blocks WiFi users too aggressively)
+            // For now, enabled as a strong deterrent.
+            if (ip_address && ip_address !== '127.0.0.1' && ip_address !== '::1') {
+                const { data: ipData } = await supabase
+                    .from('attendance_records')
+                    .select('student_id')
+                    .eq('session_id', session_id)
+                    .eq('ip_address', ip_address)
+                    .neq('student_id', student_id)
+                    .limit(1);
+
+                if (ipData && ipData.length > 0) {
+                    console.log(`[ANTI-PROXY] Blocked: IP ${ip_address} already used by Student ID: ${ipData[0].student_id}`);
+                    return res.status(403).json({
+                        error: 'PROXY DETECTED: Another student has already marked attendance from this network connection. Multiple attendance from one device/hotspot is prohibited.'
+                    });
+                }
             }
         } else {
-            const used = mockRecords.find(r =>
-                r.session_id === session_id &&
-                r.device_fingerprint === device_fingerprint &&
-                r.student_id !== student_id
-            );
-            if (used) {
-                console.log(`[ATTENDANCE] Blocked Mock Proxy Trial: Device ${device_fingerprint} already used by Student ID: ${used.student_id}`);
+            // Mock Mode logic
+            const usedByFp = mockRecords.find(r => r.session_id === session_id && r.device_fingerprint === device_fingerprint && r.student_id !== student_id);
+            const usedByIp = mockRecords.find(r => r.session_id === session_id && r.ip_address === ip_address && r.student_id !== student_id);
+
+            if (usedByFp || (usedByIp && ip_address !== '127.0.0.1')) {
+                console.log(`[ANTI-PROXY] Mock Blocked: FP Match: ${!!usedByFp}, IP Match: ${!!usedByIp}`);
                 return res.status(403).json({
-                    error: 'DEVICE ALREADY USED (Mock): This mobile device has already been used for another student.'
+                    error: 'DEVICE/NETWORK ALREADY USED (Mock): This device or network has already been used for another student.'
                 });
             }
         }
-    } else {
-        console.warn(`[ATTENDANCE] Warning: No deviceFingerprint provided in request body.`);
     }
 
     // 4.6. Verify Location (Accuracy-Aware Geo-fence)
