@@ -569,14 +569,24 @@ app.post('/api/auth/login', async (req, res) => {
     const session_token = require('crypto').randomUUID()
 
 
-    const token = signToken({ id: user.id, email: user.email, role: user.role, branch: user.branch, section: user.section, semester: user.semester, session_token })
+    // Ensure role is correctly populated in token payload
+    const userRole = user.role || role;
+    const token = signToken({
+        id: user.id,
+        email: user.email,
+        role: userRole,
+        branch: user.branch,
+        section: user.section,
+        semester: user.semester,
+        session_token
+    })
 
     let remaining_block_seconds = 0;
     if (user.blocked_until) {
         remaining_block_seconds = Math.max(0, Math.floor((new Date(user.blocked_until).getTime() - Date.now()) / 1000));
     }
 
-    res.json({ token, user: { ...user, password_hash: undefined, remaining_block_seconds } })
+    res.json({ token, user: { ...user, role: userRole, password_hash: undefined, remaining_block_seconds } })
 })
 
 // Logout Route (Clear session lock)
@@ -595,7 +605,10 @@ app.post('/api/auth/logout', verifyToken, async (req, res) => {
 
 // Start Attendance (Teacher)
 app.post('/api/sessions/start', verifyToken, async (req, res) => {
-    if (req.user.role !== 'teacher') return res.status(403).json({ error: 'Forbidden' })
+    if (req.user.role !== 'teacher') {
+        console.warn(`[AUTH] 403 Forbidden: User ${req.user.id} (${req.user.email}) tried to start session with role: ${req.user.role}`);
+        return res.status(403).json({ error: 'Forbidden: Teacher privilege required.' })
+    }
 
     const { branch, section, semester, subject, timeSlot, duration, lat, lng } = req.body
     const otp = Math.floor(100000 + Math.random() * 900000).toString()

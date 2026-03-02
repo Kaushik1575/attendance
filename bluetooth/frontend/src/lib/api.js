@@ -3,9 +3,7 @@
 // Uses absolute localhost in development.
 // This ELIMINATES CORS errors because the frontend always thinks it's talking to itself.
 
-const isProduction = typeof window !== 'undefined' &&
-    (window.location.hostname.endsWith('.vercel.app') ||
-        window.location.hostname === 'geoattend.vercel.app');
+const isProduction = import.meta.env.PROD;
 
 const getBaseURL = () => {
     // 1. Manually set URL from .env if provided and not explicitly empty
