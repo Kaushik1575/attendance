@@ -1,16 +1,16 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import {
     Users, Clock, Calendar,
     Search, FileText,
-    CheckCircle2, ArrowLeft, Loader2, User, Mail
+    CheckCircle2, ArrowLeft, Loader2, User, Mail,
+    ChevronRight, Download, Send, Filter, X
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { GITA_LOGO } from '../utils/logoBase64';
-
 import { API } from '../lib/api';
 
 const SessionHistory = () => {
@@ -23,7 +23,7 @@ const SessionHistory = () => {
     const [selectedSession, setSelectedSession] = useState(null);
     const [loading, setLoading] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
-    const [dateFilter, setDateFilter] = useState(''); // Empty means all dates
+    const [dateFilter, setDateFilter] = useState('');
 
     const [windowWidth, setWindowWidth] = useState(window.innerWidth);
     useEffect(() => {
@@ -35,21 +35,17 @@ const SessionHistory = () => {
 
     const filteredSessions = sessions.filter(s => {
         if (!dateFilter) return true;
-        // Fix: Use local date extraction so timezone differences don't break the filter
         const d = new Date(s.start_time);
         const sessionDate = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
         return sessionDate === dateFilter;
     });
 
-    // Helper to check if a session is currently active
     const isSessionLive = (session) => {
         return session && session.status === 'active' && new Date(session.expiry_time) > new Date();
     };
 
-    // Auto-select first session when filter results change
     useEffect(() => {
         if (filteredSessions.length > 0) {
-            // If current selected is NOT in the filtered list, select the first one
             const isStillVisible = selectedSession && filteredSessions.some(s => s.id === selectedSession.id);
             if (!isStillVisible) {
                 handleSessionSelect(filteredSessions[0]);
@@ -71,8 +67,6 @@ const SessionHistory = () => {
             if (res.ok) {
                 const fetchedSessions = data.sessions || [];
                 setSessions(fetchedSessions);
-
-                // Auto-select logic for the whole list (only on first load)
                 if (fetchedSessions.length > 0 && !selectedSession) {
                     handleSessionSelect(fetchedSessions[0]);
                 }
@@ -99,9 +93,7 @@ const SessionHistory = () => {
             return rollA.localeCompare(rollB, undefined, { numeric: true, sensitivity: 'base' });
         });
         setFilteredRecords(sortedRecords);
-        setSearchTerm(''); // Reset search when changing sessions
-
-        // On mobile, scroll to top of details automatically
+        setSearchTerm('');
         if (isMobile) {
             window.scrollTo({ top: 0, behavior: 'smooth' });
         }
@@ -137,14 +129,12 @@ const SessionHistory = () => {
             let logoAdded = false;
 
             try {
-                // Add the embedded base64 image to the PDF (x, y, width, height)
                 doc.addImage(GITA_LOGO, 'PNG', 14, 10, 25, 25);
                 logoAdded = true;
             } catch (e) {
                 console.warn('Could not inject base64 logo.', e);
             }
 
-            // Adjust text format based on whether the logo is present or not
             const textStartX = logoAdded ? 45 : 14;
 
             doc.setFontSize(18);
@@ -225,11 +215,9 @@ const SessionHistory = () => {
                 theme: 'striped'
             });
 
-            // 1. Get raw PDF as base64 (this is needed for the attachment)
             const pdfBase64 = doc.output('datauristring');
             const filename = `Attendance_${selectedSession.subject}.pdf`;
 
-            // 2. Call the server to send the mail with ATTACHMENT
             const res = await fetch(`${API}/api/reports/send-email`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -266,276 +254,308 @@ const SessionHistory = () => {
     };
 
     return (
-        <div style={{ minHeight: '100vh', background: '#f8faff', fontFamily: "'Inter', sans-serif" }}>
-            {/* Minimal Navbar */}
-            <nav style={{ background: 'white', borderBottom: '1px solid #e2e8f0', position: 'sticky', top: 0, zIndex: 100 }}>
-                <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', height: '64px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+        <div className="min-h-screen bg-slate-50 font-sans text-slate-900">
+            {/* Header / Navbar */}
+            <nav className="sticky top-0 z-50 bg-white/80 backdrop-blur-lg border-b border-slate-200">
+                <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
+                    <div className="flex items-center gap-3">
                         <button
-                            onClick={() => {
-                                if (isMobile && selectedSession) {
-                                    setSelectedSession(null);
-                                } else {
-                                    navigate('/teacher/dashboard');
-                                }
-                            }}
-                            style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#4f46e5', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                            onClick={() => (isMobile && selectedSession) ? setSelectedSession(null) : navigate('/teacher/dashboard')}
+                            className="p-2 hover:bg-slate-100 rounded-xl transition-colors text-indigo-600"
                         >
-                            <ArrowLeft size={isMobile ? 18 : 20} />
+                            <ArrowLeft size={20} />
                         </button>
-                        <h1 style={{ fontSize: isMobile ? '1rem' : '1.25rem', fontWeight: 800, color: '#1e293b', margin: 0 }}>
-                            {isMobile && selectedSession ? 'Session Details' : 'Attendance Record'}
+                        <h1 className="text-lg md:text-xl font-black tracking-tight text-slate-800">
+                            {isMobile && selectedSession ? 'Session Logic' : 'History Vault'}
                         </h1>
                     </div>
-                    <button onClick={logout} style={{ color: '#ef4444', fontWeight: 700, background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.9rem' }}>Logout</button>
+                    <button
+                        onClick={logout}
+                        className="text-xs font-bold uppercase tracking-widest text-rose-500 hover:text-rose-600 hover:bg-rose-50 px-3 py-1.5 rounded-lg transition-all"
+                    >
+                        Sign Out
+                    </button>
                 </div>
             </nav>
 
-            <div style={{ maxWidth: '1200px', margin: '0 auto', padding: isMobile ? '1rem' : '2rem 1.5rem' }}>
-                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '320px 1fr', gap: isMobile ? '1.5rem' : '2rem' }}>
+            <div className="max-w-7xl mx-auto p-4 md:p-6 lg:p-8">
+                <div className="grid lg:grid-cols-[340px_1fr] gap-8">
 
-                    {/* LEFT: SESSION LIST & FILTER */}
-                    <div style={{
-                        display: 'flex',
-                        flexDirection: 'column',
-                        gap: isMobile && selectedSession ? '0.5rem' : '1rem',
-                        ...(isMobile && selectedSession ? {
-                            order: -1, // Ensure it's at the top
-                            marginBottom: '0.5rem'
-                        } : {})
-                    }}>
-                        {/* Only show filter on mobile if no session is selected to save space */}
-                        {(!isMobile || !selectedSession) && (
-                            <div style={{ background: 'white', padding: '1.25rem', borderRadius: '16px', border: '1px solid #e2e8f0', boxShadow: '0 2px 8px rgba(0,0,0,0.02)' }}>
-                                <label style={{ display: 'block', fontWeight: 800, color: '#64748b', fontSize: '0.7rem', textTransform: 'uppercase', marginBottom: '0.5rem' }}>Filter by Date</label>
+                    {/* Sidebar: Session Sorter */}
+                    <div className={`space-y-6 ${isMobile && selectedSession ? 'hidden' : 'block'}`}>
+                        {/* Search & Filter Card */}
+                        <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-200">
+                            <div className="flex items-center gap-2 mb-4">
+                                <Filter size={14} className="text-indigo-600" />
+                                <span className="text-xs font-black uppercase tracking-widest text-slate-400">Chronology</span>
+                            </div>
+                            <div className="relative">
+                                <Calendar size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
                                 <input
                                     type="date"
                                     value={dateFilter}
                                     onChange={(e) => setDateFilter(e.target.value)}
-                                    style={{ width: '100%', padding: '0.75rem', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '0.9rem', outline: 'none', background: '#f8fafc' }}
+                                    className="w-full pl-12 pr-4 py-3 bg-slate-50 border-2 border-slate-100 rounded-2xl focus:border-indigo-500 transition-all outline-none font-semibold text-sm"
                                 />
-                                {dateFilter && (
-                                    <button
-                                        onClick={() => setDateFilter('')}
-                                        style={{ marginTop: '0.5rem', width: '100%', padding: '0.4rem', background: '#f1f5f9', color: '#64748b', border: 'none', borderRadius: '8px', fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer' }}
-                                    >
-                                        Clear Filter
-                                    </button>
-                                )}
                             </div>
-                        )}
-
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: isMobile && selectedSession ? '0' : '0.5rem 0' }}>
-                            <span style={{ fontWeight: 800, color: '#64748b', fontSize: '0.75rem', textTransform: 'uppercase' }}>
-                                {isMobile && selectedSession ? 'Switch Session' : (dateFilter ? 'Filtered Sessions' : 'Available Sessions')}
-                            </span>
-                            {loading && <Loader2 className="animate-spin" size={14} color="#4f46e5" />}
+                            {dateFilter && (
+                                <button
+                                    onClick={() => setDateFilter('')}
+                                    className="mt-3 w-full py-2 flex items-center justify-center gap-2 text-indigo-600 font-bold text-xs hover:bg-indigo-50 rounded-xl transition-all"
+                                >
+                                    <X size={14} /> Reset Filter
+                                </button>
+                            )}
                         </div>
 
-                        <div style={{
-                            display: 'flex',
-                            flexDirection: isMobile && selectedSession ? 'row' : 'column',
-                            gap: '0.85rem',
-                            maxHeight: isMobile && !selectedSession ? 'none' : isMobile ? 'auto' : '70vh',
-                            overflowY: isMobile && selectedSession ? 'hidden' : 'auto',
-                            overflowX: isMobile && selectedSession ? 'auto' : 'hidden',
-                            paddingBottom: isMobile && selectedSession ? '0.75rem' : 0,
-                            WebkitOverflowScrolling: 'touch',
-                            paddingRight: isMobile && selectedSession ? '1rem' : 0
-                        }}>
-                            {filteredSessions.map(s => (
-                                <div
-                                    key={s.id}
-                                    onClick={() => handleSessionSelect(s)}
-                                    style={{
-                                        background: selectedSession?.id === s.id ? '#4f46e5' : 'white',
-                                        color: selectedSession?.id === s.id ? 'white' : '#1e293b',
-                                        borderRadius: '16px',
-                                        padding: isMobile && selectedSession ? '0.75rem 1rem' : '1.25rem',
-                                        cursor: 'pointer',
-                                        boxShadow: selectedSession?.id === s.id ? '0 10px 20px rgba(79, 70, 229, 0.15)' : '0 2px 8px rgba(0,0,0,0.02)',
-                                        border: '1px solid #e2e8f0',
-                                        transition: 'all 0.2s',
-                                        position: 'relative',
-                                        ...(isMobile && selectedSession ? { flexShrink: 0, width: '160px' } : {})
-                                    }}
-                                >
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.3rem' }}>
-                                        <div style={{ fontWeight: 800, fontSize: isMobile && selectedSession ? '0.85rem' : '1rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{s.subject}</div>
-                                        {isSessionLive(s) && (
-                                            <div style={{
-                                                fontSize: '0.5rem', fontWeight: 800, color: '#ef4444',
-                                                background: '#fef2f2', padding: '0.1rem 0.4rem', borderRadius: '8px',
-                                                border: '1px solid #fecaca', animation: 'pulse 1.5s infinite'
-                                            }}>
-                                                🔴
+                        {/* Session List */}
+                        <div className="space-y-4">
+                            <div className="flex items-center justify-between px-2">
+                                <span className="text-xs font-black uppercase tracking-widest text-slate-400">Recent Records</span>
+                                {loading && <Loader2 className="animate-spin text-indigo-600" size={16} />}
+                            </div>
+                            <div className="space-y-3 overflow-y-auto max-h-[calc(100vh-400px)] pr-2 scrollbar-thin scrollbar-thumb-slate-200">
+                                {filteredSessions.map(s => (
+                                    <button
+                                        key={s.id}
+                                        onClick={() => handleSessionSelect(s)}
+                                        className={`w-full text-left group transition-all transform hover:-translate-y-0.5 ${selectedSession?.id === s.id
+                                                ? 'bg-indigo-600 text-white shadow-xl shadow-indigo-500/20 rounded-2xl p-5'
+                                                : 'bg-white text-slate-700 shadow-sm border border-slate-200 rounded-2xl p-5 hover:border-indigo-200'
+                                            }`}
+                                    >
+                                        <div className="flex justify-between items-start mb-2">
+                                            <h3 className="font-black text-lg truncate pr-4">{s.subject}</h3>
+                                            {isSessionLive(s) && (
+                                                <span className="flex h-2 w-2 rounded-full bg-rose-500 animate-pulse mt-1.5 shadow-[0_0_8px_rgba(244,63,94,0.6)]" />
+                                            )}
+                                        </div>
+                                        <div className={`flex items-center gap-3 text-xs font-bold ${selectedSession?.id === s.id ? 'text-indigo-100' : 'text-slate-400'}`}>
+                                            <div className="flex items-center gap-1.5">
+                                                <Calendar size={14} />
+                                                {new Date(s.start_time).toLocaleDateString([], { month: 'short', day: 'numeric' })}
                                             </div>
-                                        )}
+                                            <div className="flex items-center gap-1.5">
+                                                <Users size={14} />
+                                                {s.branch}-{s.section}
+                                            </div>
+                                        </div>
+                                    </button>
+                                ))}
+                                {filteredSessions.length === 0 && !loading && (
+                                    <div className="p-8 text-center bg-white rounded-3xl border-2 border-dashed border-slate-200">
+                                        <Calendar className="mx-auto text-slate-200 mb-4" size={48} />
+                                        <p className="text-sm font-bold text-slate-400">Empty Logs</p>
                                     </div>
-                                    <div style={{ fontSize: '0.7rem', opacity: 0.8, display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                                        <Calendar size={10} /> {new Date(s.start_time).toLocaleDateString([], { month: 'short', day: 'numeric' })}
-                                    </div>
-                                    <div style={{ fontSize: '0.7rem', opacity: 0.8, display: 'flex', alignItems: 'center', gap: '0.3rem', marginTop: '0.1rem' }}>
-                                        <Users size={10} /> {s.branch}-{s.section}
-                                    </div>
-                                </div>
-                            ))}
-                            {filteredSessions.length === 0 && !loading && (
-                                <div style={{ textAlign: 'center', padding: '3rem 2rem', color: '#94a3b8', background: 'white', borderRadius: '16px', border: '1px dashed #cbd5e1', width: '100%' }}>
-                                    <Calendar size={32} style={{ opacity: 0.2, marginBottom: '1rem', margin: '0 auto' }} />
-                                    <p style={{ fontWeight: 600, fontSize: '0.9rem' }}>No sessions found</p>
-                                </div>
-                            )}
+                                )}
+                            </div>
                         </div>
                     </div>
 
-                    {/* RIGHT: STUDENT LIST */}
-                    {selectedSession ? (
-                        <div style={{ background: 'white', borderRadius: '24px', border: '1px solid #e2e8f0', overflow: 'hidden', display: 'flex', flexDirection: 'column', boxShadow: '0 4px 12px rgba(0,0,0,0.02)' }}>
-                            <div style={{ padding: isMobile ? '1.5rem' : '2rem', borderBottom: '1px solid #f1f5f9' }}>
-                                <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: isMobile ? '1rem' : 0, justifyContent: 'space-between', alignItems: isMobile ? 'flex-start' : 'flex-start', marginBottom: '2rem' }}>
-                                    <div>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
-                                            <div style={{ fontSize: '0.8rem', color: '#4f46e5', fontWeight: 800, textTransform: 'uppercase' }}>Active View</div>
-                                            {isSessionLive(selectedSession) && (
-                                                <div style={{
-                                                    fontSize: '0.65rem', fontWeight: 800, color: 'white',
-                                                    background: '#ef4444', padding: '0.1rem 0.5rem', borderRadius: '4px',
-                                                    animation: 'pulse 1.5s infinite'
-                                                }}>
-                                                    LIVE
+                    {/* Main Content: Intelligence Panel */}
+                    <div className="space-y-6">
+                        {/* Horizontal Switcher (Mobile Only) */}
+                        {isMobile && selectedSession && filteredSessions.length > 1 && (
+                            <div className="space-y-3">
+                                <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-2">Switch Archive</span>
+                                <div className="flex gap-4 overflow-x-auto pb-4 px-2 scrollbar-hide">
+                                    {filteredSessions.map(s => (
+                                        <button
+                                            key={s.id}
+                                            onClick={() => handleSessionSelect(s)}
+                                            className={`flex-shrink-0 w-40 p-4 rounded-2xl border-2 transition-all ${selectedSession?.id === s.id
+                                                    ? 'bg-indigo-600 border-indigo-600 text-white shadow-lg'
+                                                    : 'bg-white border-slate-100 text-slate-600 shadow-sm'
+                                                }`}
+                                        >
+                                            <h4 className="font-black text-sm truncate mb-1">{s.subject}</h4>
+                                            <div className="flex items-center justify-between opacity-80">
+                                                <p className="text-[10px] font-bold uppercase">{s.branch}-{s.section}</p>
+                                                {isSessionLive(s) && <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse" />}
+                                            </div>
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        {selectedSession ? (
+                            <div className="bg-white rounded-3xl shadow-xl shadow-slate-200/50 border border-slate-100 overflow-hidden animate-fade-in transition-all">
+                                {/* Session Stats Header */}
+                                <div className="p-6 md:p-8 bg-gradient-to-br from-indigo-700 to-indigo-600 text-white relative overflow-hidden">
+                                    {/* Abstract Patterns */}
+                                    <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full blur-3xl -mr-20 -mt-20" />
+                                    <div className="absolute bottom-0 left-0 w-32 h-32 bg-indigo-400/10 rounded-full blur-2xl -ml-10 -mb-10" />
+
+                                    <div className="relative z-10 grid md:grid-cols-[1fr_auto] gap-6 items-center">
+                                        <div>
+                                            <div className="flex items-center gap-3 mb-4">
+                                                <span className="bg-white/10 backdrop-blur-md border border-white/20 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest">
+                                                    Session Intelligence
+                                                </span>
+                                                {isSessionLive(selectedSession) && (
+                                                    <span className="flex items-center gap-1.5 bg-rose-500/20 border border-rose-500/30 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest text-rose-100">
+                                                        <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse" />
+                                                        Active Now
+                                                    </span>
+                                                )}
+                                            </div>
+                                            <h2 className="text-3xl md:text-5xl font-black tracking-tight mb-2 drop-shadow-md">{selectedSession.subject}</h2>
+                                            <div className="flex flex-wrap items-center gap-4 text-sm font-bold opacity-90">
+                                                <div className="flex items-center gap-2"><Users size={16} /> {selectedSession.branch}-{selectedSession.section}</div>
+                                                <div className="px-1.5 py-3 h-1 w-1 rounded-full bg-white/20 hidden md:block" />
+                                                <div className="flex items-center gap-2"><Calendar size={16} /> {new Date(selectedSession.start_time).toLocaleDateString([], { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</div>
+                                            </div>
+                                            {selectedSession.time_slot && (
+                                                <div className="mt-4 flex items-center gap-2 bg-black/10 w-fit px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wide">
+                                                    <Clock size={14} /> Schedule: {selectedSession.time_slot}
                                                 </div>
                                             )}
                                         </div>
-                                        <h2 style={{ fontSize: isMobile ? '1.5rem' : '1.75rem', fontWeight: 900, color: '#1e293b', margin: 0 }}>{selectedSession.subject}</h2>
-                                        <p style={{ color: '#64748b', fontSize: '0.95rem', marginTop: '0.5rem' }}>
-                                            {selectedSession.branch} Section {selectedSession.section} • {new Date(selectedSession.start_time).toLocaleDateString()}
-                                            {selectedSession.time_slot && <span style={{ fontWeight: 800 }}> • Class Timing: {selectedSession.time_slot}</span>}
-                                        </p>
-
-                                        {/* OTP Display for LIVE sessions */}
-                                        {isSessionLive(selectedSession) && (
-                                            <div style={{ marginTop: '1rem', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '0.75rem 1.25rem', display: 'inline-flex', alignItems: 'center', gap: '1rem' }}>
-                                                <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>Class OTP</span>
-                                                <span style={{ fontSize: '1.75rem', fontWeight: 900, color: '#1e293b', letterSpacing: '4px' }}>{selectedSession.otp}</span>
-                                            </div>
-                                        )}
-                                    </div>
-                                    <div style={{ textAlign: isMobile ? 'left' : 'right', borderTop: isMobile ? '1px solid #e2e8f0' : 'none', paddingTop: isMobile ? '1rem' : 0, width: isMobile ? '100%' : 'auto' }}>
-                                        <div style={{ fontSize: '2.5rem', fontWeight: 900, color: '#4f46e5', lineHeight: 1 }}>{filteredRecords.length}</div>
-                                        <div style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 800, textTransform: 'uppercase' }}>Students Present</div>
+                                        <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-3xl p-6 text-center min-w-[140px]">
+                                            <div className="text-4xl md:text-6xl font-black mb-1 leading-none">{filteredRecords.length}</div>
+                                            <div className="text-[10px] font-black uppercase tracking-widest opacity-80">Present Today</div>
+                                        </div>
                                     </div>
                                 </div>
 
-                                <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: '1rem', alignItems: isMobile ? 'stretch' : 'center' }}>
-                                    <div style={{ position: 'relative', flex: 1 }}>
-                                        <Search style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} size={16} />
+                                {/* Active Controls */}
+                                <div className="p-6 md:p-8 bg-slate-50/50 border-b border-slate-100 grid md:grid-cols-[1fr_auto] gap-6 items-center">
+                                    <div className="relative">
+                                        <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
                                         <input
                                             type="text"
-                                            placeholder="Search by student name or roll number..."
+                                            placeholder="Search scholar name or unique identifier..."
                                             value={searchTerm}
                                             onChange={handleSearch}
-                                            style={{ width: '100%', padding: '0.85rem 1rem 0.85rem 2.5rem', borderRadius: '12px', border: '1px solid #e2e8f0', outline: 'none', fontSize: '0.9rem', background: '#f8fafc' }}
+                                            className="w-full pl-12 pr-4 py-4 bg-white shadow-sm border border-slate-200 rounded-2xl focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/5 transition-all outline-none font-bold text-sm"
                                         />
                                     </div>
-                                    <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', justifyContent: isMobile ? 'stretch' : 'flex-end', width: isMobile ? '100%' : 'auto' }}>
-                                        <button onClick={() => sendEmailReport('HOD', 'jyotiranjansahoo485@gmail.com')} style={{ flex: isMobile ? 1 : 'none', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.4rem', padding: '0.85rem 1rem', borderRadius: '12px', background: '#e0e7ff', color: '#4338ca', border: 'none', fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap', fontSize: isMobile ? '0.8rem' : '0.9rem' }}>
-                                            <Mail size={18} /> Send HOD
+                                    <div className="flex items-center gap-3">
+                                        <button
+                                            onClick={downloadPDF}
+                                            className="flex-1 md:flex-none flex items-center justify-center gap-2 bg-slate-900 text-white px-6 py-4 rounded-2xl font-black text-sm hover:bg-black transition-all shadow-lg active:scale-95"
+                                        >
+                                            <Download size={18} /> Export PDF
                                         </button>
-                                        <button onClick={() => sendEmailReport('Principal', 'jyotiranjansahoo485@gmail.com')} style={{ flex: isMobile ? 1 : 'none', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.4rem', padding: '0.85rem 1rem', borderRadius: '12px', background: '#e0e7ff', color: '#4338ca', border: 'none', fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap', fontSize: isMobile ? '0.8rem' : '0.9rem' }}>
-                                            <Mail size={18} /> Send Principal
-                                        </button>
-                                        <button onClick={downloadPDF} style={{ flex: isMobile ? '1 1 100%' : 'none', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem', padding: '0.85rem 1.5rem', borderRadius: '12px', background: '#4f46e5', color: 'white', border: 'none', fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap', marginTop: isMobile ? '0.2rem' : 0 }}>
-                                            <FileText size={18} /> Export PDF
-                                        </button>
+                                        <div className="flex-1 md:flex-none flex items-center gap-2 bg-white border border-slate-200 p-1.5 rounded-2xl shadow-sm">
+                                            <button
+                                                onClick={() => sendEmailReport('HOD', 'jyotiranjansahoo485@gmail.com')}
+                                                className="p-3 text-indigo-600 hover:bg-indigo-50 rounded-xl transition-colors tooltip"
+                                                title="Send to HOD"
+                                            >
+                                                <Send size={18} />
+                                            </button>
+                                            <div className="w-px h-6 bg-slate-100" />
+                                            <button
+                                                onClick={() => sendEmailReport('Principal', 'jyotiranjansahoo485@gmail.com')}
+                                                className="p-3 text-indigo-600 hover:bg-indigo-50 rounded-xl transition-colors"
+                                                title="Send to Principal"
+                                            >
+                                                <Mail size={18} />
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
 
-                            {isMobile ? (
-                                <div style={{ padding: '0 1.5rem 2rem' }}>
-                                    {filteredRecords.map((r, i) => (
-                                        <div key={r.id} style={{ padding: '1.25rem', border: '1px solid #f1f5f9', borderRadius: '16px', marginBottom: '1rem', background: '#f8fafc' }}>
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
-                                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                                                    <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#4f46e5', border: '1px solid #eef2ff' }}>
-                                                        <User size={20} />
+                                {/* Scholar List */}
+                                <div className="p-6 md:p-8">
+                                    {isMobile ? (
+                                        <div className="space-y-4">
+                                            {filteredRecords.map((r, i) => (
+                                                <div key={r.id} className="bg-slate-50 p-5 rounded-2xl border border-slate-100 flex flex-col gap-4">
+                                                    <div className="flex items-center justify-between">
+                                                        <div className="flex items-center gap-3">
+                                                            <div className="w-10 h-10 rounded-full bg-white border border-indigo-100 flex items-center justify-center text-indigo-600 font-black text-xs shadow-sm capitalize">
+                                                                {r.students?.name?.charAt(0) || <User size={16} />}
+                                                            </div>
+                                                            <div>
+                                                                <h4 className="font-black text-slate-800 text-sm">{r.students?.name || 'Anonymous Student'}</h4>
+                                                                <p className="text-[11px] font-black text-indigo-600 tracking-wider uppercase">{r.students?.roll_no || 'N/A'}</p>
+                                                            </div>
+                                                        </div>
+                                                        <span className="bg-emerald-50 text-emerald-600 text-[10px] font-black tracking-widest px-2 py-1 rounded-lg uppercase">Present</span>
                                                     </div>
-                                                    <div>
-                                                        <div style={{ fontWeight: 800, color: '#1e293b', fontSize: '1rem' }}>{r.students?.name || 'Unknown Student'}</div>
-                                                        <div style={{ color: '#4f46e5', fontWeight: 700, fontSize: '0.85rem', fontFamily: 'monospace' }}>{r.students?.roll_no || 'N/A'}</div>
+                                                    <div className="flex items-center justify-between pt-3 border-t border-slate-200/50 text-[10px] font-black text-slate-400 uppercase">
+                                                        <span>Index #{i + 1}</span>
+                                                        <div className="flex items-center gap-1.5">
+                                                            <Clock size={12} />
+                                                            {new Date(r.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                        </div>
                                                     </div>
                                                 </div>
-                                                <span style={{ padding: '0.25rem 0.6rem', borderRadius: '12px', background: '#ecfdf5', color: '#10b981', fontSize: '0.65rem', fontWeight: 900 }}>
-                                                    PRESENT
-                                                </span>
-                                            </div>
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px dashed #e2e8f0', paddingTop: '0.75rem', fontSize: '0.75rem', color: '#94a3b8' }}>
-                                                <span>Record #{i + 1}</span>
-                                                <span>{new Date(r.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-                                            </div>
+                                            ))}
                                         </div>
-                                    ))}
+                                    ) : (
+                                        <div className="overflow-x-auto">
+                                            <table className="w-full border-separate border-spacing-y-3">
+                                                <thead>
+                                                    <tr className="text-left text-[11px] font-black text-slate-400 uppercase tracking-[0.2em] px-4">
+                                                        <th className="pb-4 pl-6 w-20">Index</th>
+                                                        <th className="pb-4">Scholar Identity</th>
+                                                        <th className="pb-4">Tracking Code</th>
+                                                        <th className="pb-4 text-center">Status</th>
+                                                        <th className="pb-4 text-right pr-6">Check-in Time</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {filteredRecords.map((r, i) => (
+                                                        <tr key={r.id} className="bg-slate-50 border border-slate-100 hover:bg-slate-100/80 transition-all group overflow-hidden">
+                                                            <td className="py-4 pl-6 font-black text-slate-400 text-sm rounded-l-2xl border-l border-y border-slate-100">
+                                                                {String(i + 1).padStart(2, '0')}
+                                                            </td>
+                                                            <td className="py-4 border-y border-slate-100">
+                                                                <div className="flex items-center gap-3">
+                                                                    <div className="w-10 h-10 rounded-xl bg-white border border-slate-200 flex items-center justify-center text-indigo-600 font-black shadow-sm group-hover:scale-110 transition-transform">
+                                                                        {r.students?.name?.charAt(0) || <User size={18} />}
+                                                                    </div>
+                                                                    <span className="font-black text-slate-700">{r.students?.name || 'Unknown Student'}</span>
+                                                                </div>
+                                                            </td>
+                                                            <td className="py-4 font-black text-indigo-600 text-sm tracking-wider border-y border-slate-100 uppercase">
+                                                                {r.students?.roll_no || 'N/A'}
+                                                            </td>
+                                                            <td className="py-4 text-center border-y border-slate-100">
+                                                                <span className="inline-flex items-center gap-2 bg-emerald-50 text-emerald-600 px-3 py-1.5 rounded-xl text-[10px] font-black tracking-widest uppercase">
+                                                                    <CheckCircle2 size={12} /> Present
+                                                                </span>
+                                                            </td>
+                                                            <td className="py-4 text-right pr-6 font-bold text-slate-500 text-sm rounded-r-2xl border-r border-y border-slate-100">
+                                                                {new Date(r.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                            </td>
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    )}
+
                                     {filteredRecords.length === 0 && (
-                                        <div style={{ padding: '3rem 1rem', textAlign: 'center', color: '#94a3b8' }}>
-                                            <Users size={40} style={{ marginBottom: '1rem', opacity: 0.2, margin: '0 auto' }} />
-                                            <p style={{ fontWeight: 600 }}>No present students yet.</p>
+                                        <div className="py-20 text-center flex flex-col items-center justify-center">
+                                            <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center text-slate-200 mb-6">
+                                                <Users size={40} />
+                                            </div>
+                                            <h4 className="text-xl font-black text-slate-800 mb-2">Ghost Session</h4>
+                                            <p className="text-slate-400 font-bold text-sm max-w-xs mx-auto">No scholars have registered presence in this time-slice yet.</p>
                                         </div>
                                     )}
                                 </div>
-                            ) : (
-                                <div style={{ flex: 1, overflowX: 'auto' }}>
-                                    <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-                                        <thead>
-                                            <tr style={{ background: '#f8fafc' }}>
-                                                <th style={{ padding: '1rem 2rem', color: '#64748b', fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase' }}>S.No</th>
-                                                <th style={{ padding: '1rem 2rem', color: '#64748b', fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase' }}>Present Student Name</th>
-                                                <th style={{ padding: '1rem 2rem', color: '#64748b', fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase' }}>Roll Number</th>
-                                                <th style={{ padding: '1rem 2rem', color: '#64748b', fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase' }}>Status</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {filteredRecords.map((r, i) => (
-                                                <tr key={r.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                                                    <td style={{ padding: '1rem 2rem', color: '#94a3b8', fontSize: '0.9rem' }}>{i + 1}</td>
-                                                    <td style={{ padding: '1rem 2rem' }}>
-                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                                                            <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: '#eef2ff', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#4f46e5' }}>
-                                                                <User size={16} />
-                                                            </div>
-                                                            <span style={{ fontWeight: 700, color: '#1e293b' }}>{r.students?.name || 'Unknown Student'}</span>
-                                                        </div>
-                                                    </td>
-                                                    <td style={{ padding: '1rem 2rem', color: '#4f46e5', fontWeight: 700, fontFamily: 'monospace' }}>{r.students?.roll_no || 'N/A'}</td>
-                                                    <td style={{ padding: '1rem 2rem' }}>
-                                                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', padding: '0.25rem 0.75rem', borderRadius: '20px', background: '#ecfdf5', color: '#10b981', fontSize: '0.75rem', fontWeight: 900 }}>
-                                                            <CheckCircle2 size={12} /> PRESENT
-                                                        </span>
-                                                    </td>
-                                                </tr>
-                                            ))}
-                                            {filteredRecords.length === 0 && (
-                                                <tr>
-                                                    <td colSpan="4" style={{ padding: '4rem', textAlign: 'center', color: '#94a3b8' }}>
-                                                        <Users size={40} style={{ marginBottom: '1rem', opacity: 0.2, margin: '0 auto' }} />
-                                                        <p style={{ fontWeight: 600 }}>No students marked present for this session yet.</p>
-                                                    </td>
-                                                </tr>
-                                            )}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            )}
-                        </div>
-                    ) : (
-                        <div style={{ background: 'white', borderRadius: '24px', border: '1px solid #e2e8f0', padding: '4rem', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-                            <div style={{ width: '80px', height: '80px', borderRadius: '50%', background: '#f8fafc', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '1.5rem', color: '#cbd5e1' }}>
-                                <Clock size={40} />
                             </div>
-                            <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#1e293b', marginBottom: '0.5rem' }}>Please select a session</h3>
-                            <p style={{ color: '#64748b', maxWidth: '300px' }}>Choose a class session from the left to view the list of present students.</p>
-                        </div>
-                    )}
+                        ) : (
+                            <div className="bg-white rounded-3xl p-20 text-center flex flex-col items-center justify-center border-2 border-dashed border-slate-200 shadow-sm">
+                                <div className="w-24 h-24 bg-indigo-50 rounded-full flex items-center justify-center text-indigo-200 mb-8 animate-pulse-slow">
+                                    <Clock size={48} />
+                                </div>
+                                <h3 className="text-2xl font-black text-slate-800 mb-2">Ready for Archival Study</h3>
+                                <p className="text-slate-400 font-bold max-w-sm">Select a session from the history vault to decrypt the attendance patterns and export verified logs.</p>
+                                <div className="mt-10 flex gap-4">
+                                    <div className="w-12 h-1.5 bg-indigo-600 rounded-full" />
+                                    <div className="w-12 h-1.5 bg-slate-100 rounded-full" />
+                                    <div className="w-12 h-1.5 bg-slate-100 rounded-full" />
+                                </div>
+                            </div>
+                        )}
+                    </div>
                 </div>
             </div>
         </div>
