@@ -214,11 +214,11 @@ const StudentDashboard = () => {
         // Subtract error (accuracy) from distance. Add small 10m buffer for indoor drift.
         const effectiveDist = Math.max(0, d - locationAccuracy - 10);
 
-        if (locationAccuracy > 150 && effectiveDist > 150) {
+        if (locationAccuracy > 50 && effectiveDist > 50) {
             setGpsStatus('scanning');
         } else {
-            // Allow up to 150m raw distance for soft-lock, as long as adjusted distance is OK.
-            setGpsStatus(effectiveDist <= 150 ? 'ok' : 'blocked');
+            // Strictly Enforce 50m rule
+            setGpsStatus(effectiveDist <= 50 ? 'ok' : 'blocked');
         }
     }, [activeSession, liveLocation, locationAccuracy, isDemoMode]);
 
@@ -458,19 +458,19 @@ const StudentDashboard = () => {
                                     {liveDistance !== null ? `${liveDistance.toFixed(1)}m from classroom` : 'Locating...'}
                                 </div>
 
-                                {/* Proximity Progress Bar (Visual relative to 150m) */}
+                                {/* Proximity Progress Bar (Visual relative to 50m) */}
                                 <div style={{ height: '6px', background: '#f1f5f9', borderRadius: '3px', position: 'relative', overflow: 'hidden', marginBottom: '0.5rem' }}>
                                     <div style={{
                                         position: 'absolute',
                                         left: 0, top: 0, bottom: 0,
-                                        width: liveDistance !== null ? `${Math.min(100, Math.max(5, (1 - (liveDistance / 150)) * 100))}%` : '0%',
+                                        width: liveDistance !== null ? `${Math.min(100, Math.max(5, (1 - (liveDistance / 50)) * 100))}%` : '0%',
                                         background: gpsStatus === 'ok' ? 'linear-gradient(90deg, #10b981, #34d399)' : '#f59e0b',
                                         transition: 'width 0.5s ease-out'
                                     }} />
                                 </div>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginTop: '0.5rem' }}>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.7rem', color: '#64748b', fontWeight: 700 }}>
-                                        <span style={{ color: '#10b981' }}>✅ Allowed zone:</span> within <strong>150m</strong>
+                                        <span style={{ color: '#10b981' }}>✅ Allowed zone:</span> within <strong>50m</strong>
                                     </div>
                                     <button
                                         onClick={() => {

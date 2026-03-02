@@ -997,8 +997,8 @@ app.post('/api/attendance/mark', verifyToken, async (req, res) => {
     }
 
     // 4.6. Verify Location (Accuracy-Aware Geo-fence)
-    // --- ULTRA-OPTIMIZED STRICT MODE: 150m (Increased for Laptop WiFi GPS drift) ---
-    const GEOFENCE_RADIUS = 150
+    // --- ULTRA-OPTIMIZED STRICT MODE: 50m ---
+    const GEOFENCE_RADIUS = 50
     const distance = getDistance(session.teacher_lat, session.teacher_lng, lat, lng)
     const gpsAccuracy = parseFloat(accuracy) || 0  // student's GPS accuracy in meters
 
