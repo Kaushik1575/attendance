@@ -278,17 +278,27 @@ const SessionHistory = () => {
                                                 className="w-full pl-14 pr-6 py-4.5 bg-white border-2 border-slate-100 rounded-[1.5rem] outline-none focus:border-indigo-500 focus:ring-8 focus:ring-indigo-500/5 text-md font-bold shadow-sm transition-all"
                                             />
                                         </div>
-                                        <div className="flex gap-3 shrink-0">
+                                        <div className="flex flex-col xl:flex-row gap-4 shrink-0">
                                             <button
                                                 onClick={downloadPDF}
-                                                className="flex-1 md:flex-none flex items-center justify-center gap-3 bg-slate-900 text-white px-8 py-4.5 rounded-[1.5rem] text-sm font-black uppercase tracking-widest hover:bg-black hover:shadow-2xl transition-all active:scale-95 shadow-lg"
+                                                className="flex-1 xl:flex-none flex items-center justify-center gap-3 bg-slate-900 text-white px-8 py-4.5 rounded-[1.5rem] text-sm font-black uppercase tracking-widest hover:bg-black hover:shadow-2xl transition-all active:scale-95 shadow-lg"
                                             >
-                                                <Download size={20} /> Export <span className="hidden lg:inline">Records</span>
+                                                <Download size={20} /> Export Records
                                             </button>
-                                            <div className="flex items-center gap-2 bg-white border-2 border-slate-100 p-2 rounded-[1.5rem] shadow-sm">
-                                                <button onClick={() => sendEmailReport('HOD')} className="p-3 text-indigo-600 hover:bg-indigo-50 rounded-2xl transition-all hover:scale-110 active:scale-90" title="Email HOD"><Mail size={22} /></button>
-                                                <div className="w-px h-8 bg-slate-100" />
-                                                <button onClick={() => sendEmailReport('Principal')} className="p-3 text-indigo-600 hover:bg-indigo-50 rounded-2xl transition-all hover:scale-110 active:scale-90" title="Email Principal"><Send size={22} /></button>
+
+                                            <div className="flex flex-col sm:flex-row gap-3">
+                                                <button
+                                                    onClick={() => sendEmailReport('HOD')}
+                                                    className="flex-1 flex items-center justify-center gap-2 px-6 py-4.5 bg-white border-2 border-slate-100 text-indigo-600 rounded-[1.5rem] font-black text-[11px] uppercase tracking-[0.1em] hover:bg-indigo-50 hover:border-indigo-100 transition-all active:scale-95 shadow-sm"
+                                                >
+                                                    <Mail size={18} /> Send to HOD
+                                                </button>
+                                                <button
+                                                    onClick={() => sendEmailReport('Principal')}
+                                                    className="flex-1 flex items-center justify-center gap-2 px-6 py-4.5 bg-white border-2 border-slate-100 text-indigo-600 rounded-[1.5rem] font-black text-[11px] uppercase tracking-[0.1em] hover:bg-indigo-50 hover:border-indigo-100 transition-all active:scale-95 shadow-sm"
+                                                >
+                                                    <Send size={18} /> Send to Principal
+                                                </button>
                                             </div>
                                         </div>
                                     </div>
