@@ -439,14 +439,20 @@ app.post('/api/auth/register', async (req, res) => {
 
 // Teacher Registration
 app.post('/api/auth/register/teacher', async (req, res) => {
-    const { name, username, mobile, email, password, securityToken } = req.body
+    const { name, username, mobile, email, password, securityToken, otp } = req.body
 
     if (securityToken !== '157500') {
         return res.status(401).json({ error: 'Invalid Security Token. Access Denied.' })
     }
 
-    if (!name || !username || !email || !password || !mobile) {
-        return res.status(400).json({ error: 'All fields are required' })
+    if (!name || !username || !email || !password || !mobile || !otp) {
+        return res.status(400).json({ error: 'All fields including OTP are required' })
+    }
+
+    // Verify OTP one last time during registration
+    const record = otpStore.get(email)
+    if (!record || record.otp !== otp || Date.now() > record.expiry) {
+        return res.status(400).json({ error: 'Invalid or expired OTP. Please verify again.' })
     }
 
     const password_hash = await bcrypt.hash(password, 10)
@@ -461,10 +467,12 @@ app.post('/api/auth/register/teacher', async (req, res) => {
             if (error.code === '23505') return res.status(400).json({ error: 'Email or Username already exists' })
             return res.status(400).json({ error: error.message })
         }
+        otpStore.delete(email)
         return res.json({ message: 'Teacher Registered successfully', teacher: data[0] })
     } else {
         const teacher = { id: Date.now().toString(), ...teacherData }
         mockTeachers.push(teacher)
+        otpStore.delete(email)
         return res.json({ message: 'Teacher Registration successful (Mock Mode)', teacher })
     }
 })
