@@ -295,8 +295,17 @@ const SessionHistory = () => {
                 <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '320px 1fr', gap: isMobile ? '1.5rem' : '2rem' }}>
 
                     {/* LEFT: SESSION LIST & FILTER */}
-                    {(!isMobile || !selectedSession) && (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                    <div style={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: isMobile && selectedSession ? '0.5rem' : '1rem',
+                        ...(isMobile && selectedSession ? {
+                            order: -1, // Ensure it's at the top
+                            marginBottom: '0.5rem'
+                        } : {})
+                    }}>
+                        {/* Only show filter on mobile if no session is selected to save space */}
+                        {(!isMobile || !selectedSession) && (
                             <div style={{ background: 'white', padding: '1.25rem', borderRadius: '16px', border: '1px solid #e2e8f0', boxShadow: '0 2px 8px rgba(0,0,0,0.02)' }}>
                                 <label style={{ display: 'block', fontWeight: 800, color: '#64748b', fontSize: '0.7rem', textTransform: 'uppercase', marginBottom: '0.5rem' }}>Filter by Date</label>
                                 <input
@@ -314,62 +323,71 @@ const SessionHistory = () => {
                                     </button>
                                 )}
                             </div>
+                        )}
 
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: '0.5rem 0' }}>
-                                <span style={{ fontWeight: 800, color: '#64748b', fontSize: '0.85rem', textTransform: 'uppercase' }}>
-                                    {dateFilter ? 'Filtered Sessions' : 'Available Sessions'}
-                                </span>
-                                {loading && <Loader2 className="animate-spin" size={16} color="#4f46e5" />}
-                            </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: isMobile && selectedSession ? '0' : '0.5rem 0' }}>
+                            <span style={{ fontWeight: 800, color: '#64748b', fontSize: '0.75rem', textTransform: 'uppercase' }}>
+                                {isMobile && selectedSession ? 'Switch Session' : (dateFilter ? 'Filtered Sessions' : 'Available Sessions')}
+                            </span>
+                            {loading && <Loader2 className="animate-spin" size={14} color="#4f46e5" />}
+                        </div>
 
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem', maxHeight: isMobile ? 'none' : '70vh', overflowY: 'auto' }}>
-                                {filteredSessions.map(s => (
-                                    <div
-                                        key={s.id}
-                                        onClick={() => handleSessionSelect(s)}
-                                        style={{
-                                            background: selectedSession?.id === s.id ? '#4f46e5' : 'white',
-                                            color: selectedSession?.id === s.id ? 'white' : '#1e293b',
-                                            borderRadius: '16px', padding: '1.25rem', cursor: 'pointer',
-                                            boxShadow: selectedSession?.id === s.id ? '0 10px 20px rgba(79, 70, 229, 0.15)' : '0 2px 8px rgba(0,0,0,0.02)',
-                                            border: '1px solid #e2e8f0', transition: 'all 0.2s',
-                                            position: 'relative'
-                                        }}
-                                    >
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
-                                            <div style={{ fontWeight: 800, fontSize: '1rem' }}>{s.subject}</div>
-                                            {isSessionLive(s) && (
-                                                <div style={{
-                                                    fontSize: '0.65rem', fontWeight: 800, color: '#ef4444',
-                                                    background: '#fef2f2', padding: '0.2rem 0.6rem', borderRadius: '12px',
-                                                    border: '1px solid #fecaca', animation: 'pulse 1.5s infinite'
-                                                }}>
-                                                    🔴 LIVE
-                                                </div>
-                                            )}
-                                        </div>
-                                        <div style={{ fontSize: '0.8rem', opacity: 0.8, display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                                            <Calendar size={12} /> {new Date(s.start_time).toLocaleDateString()}
-                                        </div>
-                                        <div style={{ fontSize: '0.8rem', opacity: 0.8, display: 'flex', alignItems: 'center', gap: '0.4rem', marginTop: '0.2rem' }}>
-                                            <Users size={12} /> {s.branch}-{s.section}
-                                        </div>
-                                        {selectedSession?.id === s.id && !isMobile && (
-                                            <div style={{ position: 'absolute', right: '1.25rem', top: '50%', transform: 'translateY(-50%)' }}>
-                                                <CheckCircle2 size={20} />
+                        <div style={{
+                            display: 'flex',
+                            flexDirection: isMobile && selectedSession ? 'row' : 'column',
+                            gap: '0.85rem',
+                            maxHeight: isMobile && !selectedSession ? 'none' : isMobile ? 'auto' : '70vh',
+                            overflowY: isMobile && selectedSession ? 'hidden' : 'auto',
+                            overflowX: isMobile && selectedSession ? 'auto' : 'hidden',
+                            paddingBottom: isMobile && selectedSession ? '0.75rem' : 0,
+                            WebkitOverflowScrolling: 'touch',
+                            paddingRight: isMobile && selectedSession ? '1rem' : 0
+                        }}>
+                            {filteredSessions.map(s => (
+                                <div
+                                    key={s.id}
+                                    onClick={() => handleSessionSelect(s)}
+                                    style={{
+                                        background: selectedSession?.id === s.id ? '#4f46e5' : 'white',
+                                        color: selectedSession?.id === s.id ? 'white' : '#1e293b',
+                                        borderRadius: '16px',
+                                        padding: isMobile && selectedSession ? '0.75rem 1rem' : '1.25rem',
+                                        cursor: 'pointer',
+                                        boxShadow: selectedSession?.id === s.id ? '0 10px 20px rgba(79, 70, 229, 0.15)' : '0 2px 8px rgba(0,0,0,0.02)',
+                                        border: '1px solid #e2e8f0',
+                                        transition: 'all 0.2s',
+                                        position: 'relative',
+                                        ...(isMobile && selectedSession ? { flexShrink: 0, width: '160px' } : {})
+                                    }}
+                                >
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.3rem' }}>
+                                        <div style={{ fontWeight: 800, fontSize: isMobile && selectedSession ? '0.85rem' : '1rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{s.subject}</div>
+                                        {isSessionLive(s) && (
+                                            <div style={{
+                                                fontSize: '0.5rem', fontWeight: 800, color: '#ef4444',
+                                                background: '#fef2f2', padding: '0.1rem 0.4rem', borderRadius: '8px',
+                                                border: '1px solid #fecaca', animation: 'pulse 1.5s infinite'
+                                            }}>
+                                                🔴
                                             </div>
                                         )}
                                     </div>
-                                ))}
-                                {filteredSessions.length === 0 && !loading && (
-                                    <div style={{ textAlign: 'center', padding: '3rem 2rem', color: '#94a3b8', background: 'white', borderRadius: '16px', border: '1px dashed #cbd5e1' }}>
-                                        <Calendar size={32} style={{ opacity: 0.2, marginBottom: '1rem', margin: '0 auto' }} />
-                                        <p style={{ fontWeight: 600, fontSize: '0.9rem' }}>No sessions found for this {dateFilter ? 'date' : 'criteria'}</p>
+                                    <div style={{ fontSize: '0.7rem', opacity: 0.8, display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                                        <Calendar size={10} /> {new Date(s.start_time).toLocaleDateString([], { month: 'short', day: 'numeric' })}
                                     </div>
-                                )}
-                            </div>
+                                    <div style={{ fontSize: '0.7rem', opacity: 0.8, display: 'flex', alignItems: 'center', gap: '0.3rem', marginTop: '0.1rem' }}>
+                                        <Users size={10} /> {s.branch}-{s.section}
+                                    </div>
+                                </div>
+                            ))}
+                            {filteredSessions.length === 0 && !loading && (
+                                <div style={{ textAlign: 'center', padding: '3rem 2rem', color: '#94a3b8', background: 'white', borderRadius: '16px', border: '1px dashed #cbd5e1', width: '100%' }}>
+                                    <Calendar size={32} style={{ opacity: 0.2, marginBottom: '1rem', margin: '0 auto' }} />
+                                    <p style={{ fontWeight: 600, fontSize: '0.9rem' }}>No sessions found</p>
+                                </div>
+                            )}
                         </div>
-                    )}
+                    </div>
 
                     {/* RIGHT: STUDENT LIST */}
                     {selectedSession ? (
