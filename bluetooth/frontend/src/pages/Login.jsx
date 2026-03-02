@@ -10,7 +10,7 @@ const Login = () => {
     const { role } = useParams(); // 'teacher' or 'student'
     const navigate = useNavigate();
     const { login } = useAuth();
-    const [email, setEmail] = useState('');
+    const [identifier, setIdentifier] = useState(''); // email for teacher, roll_no for student
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
@@ -37,7 +37,12 @@ const Login = () => {
             const res = await fetch(`${API}/api/auth/login`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email, password, role, forceLogin: force })
+                body: JSON.stringify({
+                    [role === 'teacher' ? 'email' : 'roll_no']: identifier,
+                    password,
+                    role,
+                    forceLogin: force
+                })
             });
 
             const data = await res.json();
@@ -149,16 +154,22 @@ const Login = () => {
 
                     <form onSubmit={handleSubmit}>
                         <div className="form-group">
-                            <label style={{ color: '#475569', fontSize: '0.85rem' }}>Email Address</label>
+                            <label style={{ color: '#475569', fontSize: '0.85rem' }}>
+                                {role === 'teacher' ? 'Email Address' : 'Roll Number'}
+                            </label>
                             <div style={{ position: 'relative' }}>
-                                <Mail size={18} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
+                                {role === 'teacher' ? (
+                                    <Mail size={18} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
+                                ) : (
+                                    <GraduationCap size={18} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
+                                )}
                                 <input
                                     className="input"
-                                    type="email"
+                                    type={role === 'teacher' ? 'email' : 'text'}
                                     autoComplete="username"
-                                    value={email}
-                                    onChange={(e) => setEmail(e.target.value)}
-                                    placeholder={role === 'teacher' ? 'faculty@college.edu' : 'student@college.edu'}
+                                    value={identifier}
+                                    onChange={(e) => setIdentifier(e.target.value)}
+                                    placeholder={role === 'teacher' ? 'faculty@college.edu' : 'e.g. 101'}
                                     style={{ paddingLeft: '3rem' }}
                                     required
                                 />
