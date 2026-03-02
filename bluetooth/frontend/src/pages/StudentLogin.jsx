@@ -8,8 +8,8 @@ import { API } from '../lib/api';
 export default function StudentLogin() {
     const navigate = useNavigate()
     const { login } = useAuth()
-    const [rollNo, setRollNo] = useState('2302060')
-    const [password, setPassword] = useState('student123')
+    const [rollNo, setRollNo] = useState('')
+    const [password, setPassword] = useState('')
     const [showPassword, setShowPassword] = useState(false)
     const [loading, setLoading] = useState(false)
 

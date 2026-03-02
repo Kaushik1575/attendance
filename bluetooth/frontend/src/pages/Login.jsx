@@ -9,8 +9,8 @@ const Login = () => {
     const { role } = useParams(); // 'teacher' or 'student'
     const navigate = useNavigate();
     const { login } = useAuth();
-    const [identifier, setIdentifier] = useState('2302060'); // email for teacher, roll_no for student
-    const [password, setPassword] = useState('student123');
+    const [identifier, setIdentifier] = useState(''); // email for teacher, roll_no for student
+    const [password, setPassword] = useState('');
     const [showPassword, setShowPassword] = useState(false);
     const [loading, setLoading] = useState(false);
 
