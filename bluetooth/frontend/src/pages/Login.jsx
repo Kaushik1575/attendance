@@ -101,8 +101,19 @@ const Login = () => {
             {/* Right Side: Form Side */}
             <div className="flex flex-col justify-center py-12 px-6 sm:px-12 lg:px-24 bg-white relative">
                 <div className="max-w-md w-full mx-auto">
-                    <div className="mb-10">
-                        <h2 className="text-4xl font-black text-slate-900 mb-2">Welcome Back</h2>
+                    {/* Mobile-only Header */}
+                    <div className="lg:hidden flex flex-col items-center mb-10 text-center">
+                        <div className={`w-14 h-14 rounded-2xl ${themeClass} flex items-center justify-center mb-4 shadow-lg shadow-primary-500/20`}>
+                            {isTeacher ? <ShieldCheck size={28} className="text-white" /> : <GraduationCap size={28} className="text-white" />}
+                        </div>
+                        <h1 className={`text-3xl font-black ${textThemeClass} tracking-tight`}>
+                            {isTeacher ? 'Faculty Portal' : 'Student Hub'}
+                        </h1>
+                        <p className="text-slate-400 text-sm mt-1 font-medium italic">Geo-Precision Attendance</p>
+                    </div>
+
+                    <div className="mb-10 text-center lg:text-left">
+                        <h2 className="text-4xl font-black text-slate-900 mb-2 font-display">Welcome Back</h2>
                         <p className="text-slate-500 font-medium">Please enter your access details</p>
                     </div>
 
