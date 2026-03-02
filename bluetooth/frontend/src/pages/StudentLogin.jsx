@@ -7,15 +7,15 @@ import toast from 'react-hot-toast'
 import { API } from '../lib/api';
 
 const DEMO_ACCOUNTS = [
-    { name: 'Arjun Sharma', email: 'arjun@student.edu', password: 'student123' },
-    { name: 'Priya Patel', email: 'priya@student.edu', password: 'student123' },
-    { name: 'Rohan Verma', email: 'rohan@student.edu', password: 'student123' },
+    { name: 'Arjun Sharma', rollNo: '101', password: 'student123' },
+    { name: 'Priya Patel', rollNo: '102', password: 'student123' },
+    { name: 'Rohan Verma', rollNo: '103', password: 'student123' },
 ]
 
 export default function StudentLogin() {
     const navigate = useNavigate()
     const { login } = useAuth()
-    const [email, setEmail] = useState('arjun@student.edu')
+    const [rollNo, setRollNo] = useState('101')
     const [password, setPassword] = useState('student123')
     const [showPassword, setShowPassword] = useState(false)
     const [loading, setLoading] = useState(false)
@@ -27,7 +27,7 @@ export default function StudentLogin() {
             const res = await fetch(`${API}/api/auth/login`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email, password, role: 'student', forceLogin: force })
+                body: JSON.stringify({ roll_no: rollNo, password, role: 'student', forceLogin: force })
             });
 
             const data = await res.json();
@@ -71,7 +71,7 @@ export default function StudentLogin() {
     }
 
     const quickFill = (acc) => {
-        setEmail(acc.email)
+        setRollNo(acc.rollNo)
         setPassword(acc.password)
     }
 
@@ -104,7 +104,7 @@ export default function StudentLogin() {
                         <div className="flex flex-wrap gap-2">
                             {DEMO_ACCOUNTS.map(acc => (
                                 <button
-                                    key={acc.email}
+                                    key={acc.rollNo}
                                     id={`quick-fill-${acc.name.split(' ')[0].toLowerCase()}`}
                                     onClick={() => quickFill(acc)}
                                     className="text-xs bg-white/10 hover:bg-white/20 border border-white/15 rounded-lg px-3 py-1.5 text-white/70 hover:text-white transition-all">
@@ -119,15 +119,15 @@ export default function StudentLogin() {
                     <form id="student-login-form" onSubmit={handleSubmit} className="space-y-5">
                         <div>
                             <label className="text-sm font-medium text-white/70 block mb-2">
-                                <Mail size={14} className="inline mr-1.5" />Student Email
+                                <Users size={14} className="inline mr-1.5" />Roll Number
                             </label>
                             <input
-                                id="student-email-input"
-                                type="email"
-                                value={email}
-                                onChange={e => setEmail(e.target.value)}
+                                id="student-roll-input"
+                                type="text"
+                                value={rollNo}
+                                onChange={e => setRollNo(e.target.value)}
                                 className="input-field"
-                                placeholder="you@student.edu"
+                                placeholder="e.g. 101"
                                 required
                             />
                         </div>

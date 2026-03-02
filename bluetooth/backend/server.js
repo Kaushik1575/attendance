@@ -530,17 +530,23 @@ app.get('/api/auth/me', verifyToken, async (req, res) => {
 
 // Unified Login
 app.post('/api/auth/login', async (req, res) => {
-    const { email, password, role, forceLogin } = req.body
+    const { email, roll_no, password, role, forceLogin } = req.body
     let user;
 
     if (supabase) {
         const table = role === 'teacher' ? 'teachers' : 'students'
-        const { data, error } = await supabase.from(table).select('*').eq('email', email).single()
+        const identifier = role === 'teacher' ? 'email' : 'roll_no'
+        const value = role === 'teacher' ? email : roll_no
+
+        const { data, error } = await supabase.from(table).select('*').eq(identifier, value).single()
         if (error || !data) return res.status(401).json({ error: `${role.charAt(0).toUpperCase() + role.slice(1)} account not found` })
         user = data
     } else {
-        const list = role === 'teacher' ? mockTeachers : mockStudents
-        user = list.find(u => u.email === email)
+        if (role === 'teacher') {
+            user = mockTeachers.find(u => u.email === email)
+        } else {
+            user = mockStudents.find(u => u.roll_no === roll_no)
+        }
         if (!user) return res.status(401).json({ error: `${role.charAt(0).toUpperCase() + role.slice(1)} not found (Mock Mode)` })
     }
 
