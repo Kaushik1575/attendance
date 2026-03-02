@@ -149,6 +149,21 @@ export async function markAttendance({ sessionId, studentName, rollNumber, rssi,
         .single()
     if (existing) throw new Error('You have already marked attendance for this session.')
 
+    // ── Guard 3: Strict Anti-Proxy (Cross-Browser Same Device) ────────────
+    if (deviceInfo?.fingerprint) {
+        const { data: proxy } = await supabase
+            .from('attendance_records')
+            .select('roll_number')
+            .eq('session_id', sessionId)
+            .eq('device_fingerprint', deviceInfo.fingerprint)
+            .neq('roll_number', rollNumber)
+            .limit(1)
+
+        if (proxy && proxy.length > 0) {
+            throw new Error(`Anti-Proxy System Active: This device was already used to mark attendance for Roll No ${proxy[0].roll_number}.`)
+        }
+    }
+
     // ── Insert ────────────────────────────────────────────────────────────
     const status = rssi > -70 ? 'Present' : rssi > -85 ? 'Borderline' : 'Absent'
     const { data, error } = await supabase

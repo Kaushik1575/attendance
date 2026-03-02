@@ -198,6 +198,36 @@ const TeacherDashboard = () => {
         return () => clearInterval(poll);
     }, [activeSession]);
 
+    // Check for existing active session on mount
+    useEffect(() => {
+        const checkActiveSession = async () => {
+            try {
+                const res = await fetch(`${API}/api/sessions/teacher/active`, {
+                    headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+                });
+                if (res.ok) {
+                    const session = await res.json();
+                    if (session && session.status === 'active') {
+                        // Calculate remaining time
+                        const expiry = new Date(session.expiry_time).getTime();
+                        const now = new Date().getTime();
+                        const remainingSeconds = Math.max(0, Math.floor((expiry - now) / 1000));
+
+                        if (remainingSeconds > 0) {
+                            setActiveSession(session);
+                            setTimeLeft(remainingSeconds);
+                            toast.success('Reconnected to active session');
+                        }
+                    }
+                }
+            } catch (err) {
+                console.error('Error checking active session:', err);
+            }
+        };
+
+        checkActiveSession();
+    }, []);
+
     const formatTime = (seconds) => {
         const m = Math.floor(seconds / 60);
         const s = seconds % 60;

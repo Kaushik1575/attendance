@@ -148,11 +148,14 @@ export default function StudentCheckIn() {
         try {
             const rssi = beaconRSSI ?? -70
             const distance = estimateDistance(rssi)
+            const gpsHash = await import('../lib/deviceIdentity').then(m => m.getLocationDeviceId());
+            const strictDeviceInfo = { ...deviceInfo, ...getDeviceFingerprint(gpsHash || '') };
+
             const rec = await markAttendance({
                 sessionId,
                 studentName: name.trim(),
                 rollNumber: roll.trim().toUpperCase(),
-                rssi, distance, deviceInfo,
+                rssi, distance, deviceInfo: strictDeviceInfo,
             })
             setRecord(rec)
             setStep(STEP.SUCCESS)
