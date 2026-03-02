@@ -356,18 +356,39 @@ app.post('/api/auth/send-otp', async (req, res) => {
         (async () => {
             try {
                 console.log(`[AUTH] Background: Sending OTP to ${email} from ${SENDER_EMAIL}...`);
+
+                // Check if email indicates a faculty/teacher format, or keep it neutral but highly professional
+                const isFaculty = req.body.isTeacher === true || email.includes('faculty') || email.includes('teacher');
+                const roleName = isFaculty ? 'Faculty/Staff' : 'Student';
+                const subjectLine = isFaculty ? 'GeoAttend Faculty Authentication' : 'Verify your Student Account';
+
                 const { data, error } = await resend.emails.send({
-                    from: `GeoAttend <${SENDER_EMAIL}>`,
+                    from: `GeoAttend Authentication <${SENDER_EMAIL}>`,
                     to: email,
-                    subject: 'Verify your Student Account',
+                    subject: subjectLine,
                     html: `
-                        <div style="font-family: sans-serif; max-width: 400px; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
-                            <h2 style="color: #2563eb;">Verification Code</h2>
-                            <p>Use code below to complete registration:</p>
-                            <div style="background: #f4f7ff; padding: 20px; text-align: center; border-radius: 8px;">
-                                <span style="font-size: 32px; font-weight: 800; letter-spacing: 5px; color: #1e3a8a;">${otp}</span>
+                        <div style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; max-width: 500px; margin: 0 auto; padding: 30px; border: 1px solid #e2e8f0; border-radius: 12px; background-color: #ffffff; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);">
+                            <div style="text-align: center; margin-bottom: 25px;">
+                                <h1 style="color: #1e3a8a; margin: 0; font-size: 24px;">GeoAttend System</h1>
                             </div>
-                            <p style="font-size: 12px; color: #666; margin-top: 20px;">Expired in 10 minutes.</p>
+                            
+                            <h2 style="color: #334155; font-size: 18px; border-bottom: 2px solid #f1f5f9; padding-bottom: 10px; margin-bottom: 20px;">${roleName} Verification</h2>
+                            
+                            <p style="color: #475569; font-size: 15px; line-height: 1.6;">Hello,</p>
+                            <p style="color: #475569; font-size: 15px; line-height: 1.6;">A registration attempt was made using this email address. To complete your account setup, please use the following secure verification code:</p>
+                            
+                            <div style="background: #f8fafc; padding: 25px; text-align: center; border-radius: 8px; margin: 30px 0; border: 1px solid #e2e8f0;">
+                                <span style="font-size: 36px; font-weight: 800; letter-spacing: 8px; color: #4f46e5;">${otp}</span>
+                            </div>
+                            
+                            <p style="font-size: 13px; color: #ef4444; font-weight: bold; margin-top: 10px;">⚠️ This code will expire in exactly 10 minutes.</p>
+                            
+                            <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 30px 0 20px 0;" />
+                            
+                            <p style="font-size: 12px; color: #94a3b8; line-height: 1.5; margin: 0;">
+                                If you did not request this verification, please ignore this email. Your information remains secure.<br/><br/>
+                                System generated transmission • Do not reply directly to this email.
+                            </p>
                         </div>
                     `
                 });
