@@ -113,8 +113,11 @@ const SessionHistory = () => {
             doc.text(`Subject: ${selectedSession.subject}`, 40, 18);
             doc.setFontSize(10);
             doc.text(`Date: ${new Date(selectedSession.start_time).toLocaleDateString()} | ${selectedSession.branch}-${selectedSession.section}`, 40, 24);
+            if (selectedSession.time_slot) {
+                doc.text(`Class Time: ${selectedSession.time_slot}`, 40, 30);
+            }
             autoTable(doc, {
-                startY: 35,
+                startY: selectedSession.time_slot ? 38 : 32,
                 head: [['#', 'Name', 'Roll Number', 'Time']],
                 body: filteredRecords.map((r, i) => [i + 1, r.students?.name, r.students?.roll_no, new Date(r.timestamp).toLocaleTimeString()]),
                 theme: 'grid'
