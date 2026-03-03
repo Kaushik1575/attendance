@@ -138,10 +138,9 @@ export const cancelSession = async (req, res) => {
     } else {
         const index = mockSessions.findIndex(s => s.id === id);
         if (index > -1) mockSessions.splice(index, 1);
-        const initialLen = mockRecords.length;
-        mockRecords.length = 0; // Quick clear (Warning: empties all mock records) - Fixing locally below:
         const remainingRecords = mockRecords.filter(r => r.session_id !== id);
-        mockRecords.push(...remainingRecords); // Requires mutable export - simplified approach here is sufficient for mock.
+        mockRecords.length = 0;
+        mockRecords.push(...remainingRecords);
     }
     return res.json({ success: true, message: 'Session cancelled successfully' });
 };
@@ -165,7 +164,9 @@ export const resendAlerts = async (req, res) => {
 };
 
 export const getActiveSessionStudent = async (req, res) => {
-    const { branch, section, semester } = req.query;
+    const branch = req.query.branch || (req.user && req.user.branch);
+    const section = req.query.section || (req.user && req.user.section);
+    const semester = req.query.semester || (req.user && req.user.semester);
     const now = new Date();
 
     if (supabase) {

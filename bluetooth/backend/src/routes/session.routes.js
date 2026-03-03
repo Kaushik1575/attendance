@@ -9,9 +9,9 @@ import { verifyToken } from '../middlewares/auth.middleware.js';
 const router = express.Router();
 
 router.post('/start', verifyToken, startSession);
-router.post('/cancel/:id', verifyToken, cancelSession);
+router.delete('/:id/cancel', verifyToken, cancelSession);
 router.post('/:id/resend-alerts', verifyToken, resendAlerts);
-router.get('/student/active', getActiveSessionStudent);
+router.get('/student/active', verifyToken, getActiveSessionStudent);
 router.get('/teacher/active', verifyToken, getActiveSessionTeacher);
 router.post('/:id/close', verifyToken, closeSession);
 router.get('/history', verifyToken, getSessionHistory);
