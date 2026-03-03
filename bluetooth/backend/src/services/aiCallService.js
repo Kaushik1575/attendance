@@ -1,5 +1,4 @@
 
-
 const RETELL_API_KEY = process.env.RETELL_API_KEY || "key_47254fd3407901e9678eb9f05504";
 
 export async function makeOutboundCall(toNumber, studentName, className, date, subject) {
@@ -8,15 +7,24 @@ export async function makeOutboundCall(toNumber, studentName, className, date, s
         formattedNumber = `+91${formattedNumber}`; // Default to India country code
     }
 
+    // Format date for natural speech (e.g., "March 3rd, 2026")
+    const speechDate = date || new Date().toLocaleDateString('en-US', {
+        timeZone: 'Asia/Kolkata',
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric'
+    });
+
     const payload = {
         "from_number": "+12173933886",
         "to_number": formattedNumber,
         "call_type": "phone_call",
         "override_agent_id": "agent_3fdd36f861c6e96f3f424ba8cc",
+        "end_call_after_speak": true,
         "retell_llm_dynamic_variables": {
             "student_name": studentName || "Student",
             "branch_year_sem": className || "Class",
-            "date": date || new Date().toLocaleDateString('en-IN'),
+            "date": speechDate,
             "subject_name": subject || "Lecture"
         }
     };
