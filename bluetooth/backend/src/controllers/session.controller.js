@@ -269,7 +269,8 @@ export const closeSession = async (req, res) => {
     }
 
     if (sessionData) {
-        notifyAbsentees(sessionData.id, sessionData.branch, sessionData.section, sessionData.semester, sessionData.subject || 'Lecture');
+        console.log(`[SESSION] Manual closure triggered for ${sessionId}. Sending alerts...`);
+        await notifyAbsentees(sessionData.id, sessionData.branch, sessionData.section, sessionData.semester, sessionData.subject || 'Lecture');
     }
 
     return res.json({ success: true });

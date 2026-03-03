@@ -15,15 +15,26 @@ export const notifyAbsentees = async (sessionId, branch, section, semester, subj
         const isResendConfigured = process.env.RESEND_API_KEY &&
             process.env.RESEND_API_KEY !== 're_YOUR_RESEND_KEY_HERE';
 
+        console.log(`[AUTO-NOTIFY] Config check: Resend Configured = ${isResendConfigured}, Supabase = ${!!supabase}`);
+        console.log(`[AUTO-NOTIFY] Filtering students by: Branch=${branch}, Section=${section}, Sem=${semester}`);
+
         let absentees = [];
         let studentsList = [];
 
         if (supabase) {
-            const { data: students } = await supabase.from('students').select('id, name, email, mobile, parent_mobile')
-                .eq('branch', branch).eq('section', section).eq('semester', semester);
-            const { data: records } = await supabase.from('attendance_records').select('student_id').eq('session_id', sessionId);
+            const { data: students, error: sErr } = await supabase.from('students').select('id, name, email, mobile, parent_mobile')
+                .eq('branch', branch.trim()).eq('section', section.trim()).eq('semester', String(semester));
+
+            if (sErr) console.log('[AUTO-NOTIFY] Error fetching students:', sErr);
+            console.log(`[AUTO-NOTIFY] Found ${students?.length || 0} total students in this class.`);
+
+            const { data: records, error: rErr } = await supabase.from('attendance_records').select('student_id').eq('session_id', sessionId);
+            if (rErr) console.log('[AUTO-NOTIFY] Error fetching records:', rErr);
+            console.log(`[AUTO-NOTIFY] Found ${records?.length || 0} attendance records for this session.`);
+
             const attendedIds = new Set((records || []).map(r => r.student_id));
             absentees = (students || []).filter(s => !attendedIds.has(s.id));
+            console.log(`[AUTO-NOTIFY] Result: Identified ${absentees.length} absentees based on missing IDs.`);
         } else {
             studentsList = mockStudents.filter(s => s.branch === branch && s.section === section && s.semester == semester);
             const attendedIds = new Set(mockRecords.filter(r => r.session_id === sessionId).map(r => r.student_id));
