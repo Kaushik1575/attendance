@@ -47,7 +47,8 @@ export const notifyAbsentees = async (sessionId, branch, section, semester, subj
         }
 
         const dateStr = new Date().toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata', day: '2-digit', month: 'short', year: 'numeric' });
-        const className = `${branch} (Sec ${section}, Sem ${semester})`;
+        const year = Math.ceil(parseInt(semester) / 2);
+        const branchYearSem = `${branch} / ${year} Year / ${semester} Sem`;
 
         if (!isResendConfigured) {
             console.log('--------------------------------------------------');
@@ -58,7 +59,7 @@ export const notifyAbsentees = async (sessionId, branch, section, semester, subj
                 const contactNumber = s.parent_mobile || s.mobile;
                 if (contactNumber) {
                     console.log(`   [AUTO-NOTIFY] Initiating AI call to ${contactNumber}...`);
-                    await makeOutboundCall(contactNumber, s.name, className, dateStr, subject);
+                    await makeOutboundCall(contactNumber, s.name, branchYearSem, dateStr, subject);
                 }
             }
             console.log('--------------------------------------------------');
@@ -72,7 +73,7 @@ export const notifyAbsentees = async (sessionId, branch, section, semester, subj
             const contactNumber = student.parent_mobile || student.mobile;
             if (contactNumber) {
                 console.log(`[AUTO-NOTIFY] Initiating AI call to ${contactNumber}...`);
-                await makeOutboundCall(contactNumber, student.name, className, dateStr, subject);
+                await makeOutboundCall(contactNumber, student.name, branchYearSem, dateStr, subject);
             }
 
             try {

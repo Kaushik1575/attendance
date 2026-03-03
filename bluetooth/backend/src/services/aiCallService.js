@@ -15,9 +15,9 @@ export async function makeOutboundCall(toNumber, studentName, className, date, s
         "override_agent_id": "agent_3fdd36f861c6e96f3f424ba8cc",
         "retell_llm_dynamic_variables": {
             "student_name": studentName || "Student",
-            "class_name": className || "Class",
+            "branch_year_sem": className || "Class",
             "date": date || new Date().toLocaleDateString('en-IN'),
-            "subject": subject || "Lecture"
+            "subject_name": subject || "Lecture"
         }
     };
 
