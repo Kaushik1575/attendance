@@ -56,10 +56,12 @@ export const notifyAbsentees = async (sessionId, branch, section, semester, subj
             console.log(`[AUTO-NOTIFY] Detected ${absentees.length} absentees for ${subject}:`);
             for (const s of absentees) {
                 console.log(`   - ${s.name} (${s.email})`);
-                const contactNumber = s.parent_mobile || s.mobile;
-                if (contactNumber) {
-                    console.log(`   [AUTO-NOTIFY] Initiating AI call to ${contactNumber}...`);
-                    await makeOutboundCall(contactNumber, s.name, branchYearSem, dateStr, subject);
+                const parentContact = s.parent_mobile;
+                if (parentContact) {
+                    console.log(`   [AUTO-NOTIFY] Initiating AI Parent Call to ${parentContact}...`);
+                    await makeOutboundCall(parentContact, s.name, branchYearSem, dateStr, subject);
+                } else {
+                    console.log(`   [AUTO-NOTIFY] Skipping AI call for ${s.name}: parent_mobile is missing.`);
                 }
             }
             console.log('--------------------------------------------------');
@@ -70,10 +72,12 @@ export const notifyAbsentees = async (sessionId, branch, section, semester, subj
 
         // 3. Send emails & AI calls
         for (const student of absentees) {
-            const contactNumber = student.parent_mobile || student.mobile;
-            if (contactNumber) {
-                console.log(`[AUTO-NOTIFY] Initiating AI call to ${contactNumber}...`);
-                await makeOutboundCall(contactNumber, student.name, branchYearSem, dateStr, subject);
+            const parentContact = student.parent_mobile;
+            if (parentContact) {
+                console.log(`[AUTO-NOTIFY] Initiating AI Parent Call to ${parentContact}...`);
+                await makeOutboundCall(parentContact, student.name, branchYearSem, dateStr, subject);
+            } else {
+                console.log(`[AUTO-NOTIFY] Skipping AI call for ${student.name}: No parent_mobile in database.`);
             }
 
             try {
