@@ -12,7 +12,7 @@ export async function makeOutboundCall(toNumber, studentName, className, date, s
         "from_number": "+12173933886",
         "to_number": formattedNumber,
         "call_type": "phone_call",
-        "override_agent_id": "agent_9defb58780e30cd596fa86b12c",
+        "override_agent_id": "agent_3fdd36f861c6e96f3f424ba8cc",
         "retell_llm_dynamic_variables": {
             "student_name": studentName || "Student",
             "class_name": className || "Class",
