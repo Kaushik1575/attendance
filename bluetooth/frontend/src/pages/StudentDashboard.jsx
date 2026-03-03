@@ -80,7 +80,7 @@ const StudentDashboard = () => {
 
     const checkSession = async () => {
         try {
-            const res = await fetch(`${API}/api/sessions/active`, {
+            const res = await fetch(`${API}/api/sessions/student/active`, {
                 headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
             });
             if (!res.ok) {
