@@ -1,5 +1,6 @@
 import supabase from '../config/supabase.js';
-import { mockStudents, mockRecords, mockBlockedLogs } from '../config/mockData.js';
+import { mockStudents, mockRecords, mockBlockedLogs, mockSessions } from '../config/mockData.js';
+import { notifyAbsentees } from '../services/notificationService.js';
 
 export const getStats = async (req, res) => {
     if (supabase) {
@@ -75,3 +76,53 @@ export const resetDevice = async (req, res) => {
         return res.json({ message: 'Device binding reset successfully (Mock)' });
     }
 };
+
+/**
+ * CRON JOB ENDPOINT
+ * This runs automatically (via Vercel Crons) to process sessions that expired but have not sent alerts yet.
+ */
+export const cronCleanup = async (req, res) => {
+    const now = new Date();
+    let expiredSessions = [];
+
+    try {
+        if (supabase) {
+            // Find sessions that are active but past their expiry time
+            const { data, error } = await supabase.from('attendance_sessions')
+                .select('*')
+                .eq('status', 'active')
+                .lt('expiry_time', now.toISOString());
+
+            if (error) throw error;
+            expiredSessions = data || [];
+
+            // Mark them as closed/expired in DB
+            if (expiredSessions.length > 0) {
+                const ids = expiredSessions.map(s => s.id);
+                await supabase.from('attendance_sessions')
+                    .update({ status: 'closed' })
+                    .in('id', ids);
+            }
+        } else {
+            expiredSessions = mockSessions.filter(s => s.status === 'active' && new Date(s.expiry_time) < now);
+            expiredSessions.forEach(s => s.status = 'closed');
+        }
+
+        console.log(`[CRON] ${now.toISOString()} - Processing ${expiredSessions.length} sessions...`);
+
+        // Trigger notifications for each
+        for (const session of expiredSessions) {
+            await notifyAbsentees(session.id, session.branch, session.section, session.semester, session.subject || 'Lecture');
+        }
+
+        return res.json({
+            status: 'success',
+            message: `Processed ${expiredSessions.length} sessions.`,
+            processedIds: expiredSessions.map(s => s.id)
+        });
+    } catch (err) {
+        console.error('[CRON] Error:', err);
+        return res.status(500).json({ error: 'Cron Internal Error' });
+    }
+};
+

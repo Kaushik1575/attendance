@@ -225,7 +225,21 @@ const TeacherDashboard = () => {
             }
         };
 
+        const checkSessionCleanup = async () => {
+            try {
+                // Background sync: Closes expired sessions and triggers emails
+                await fetch(`${API}/api/admin/cron/check-sessions`, {
+                    headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+                });
+            } catch (err) { /* silent fail for background task */ }
+        };
+
         checkActiveSession();
+        checkSessionCleanup(); // Run once on load
+
+        // Run cleanup every 2 minutes while teacher is on dashboard
+        const cleanupInterval = setInterval(checkSessionCleanup, 120000);
+        return () => clearInterval(cleanupInterval);
     }, []);
 
     const formatTime = (seconds) => {
