@@ -270,11 +270,71 @@ export const closeSession = async (req, res) => {
     }
 
     if (sessionData) {
-        console.log(`[SESSION] Manual closure triggered for ${sessionId}. Sending alerts...`);
-        await notifyAbsentees(sessionData.id, sessionData.branch, sessionData.section, sessionData.semester, sessionData.subject || 'Lecture');
+        console.log(`[SESSION] Manual closure triggered for ${sessionId}. Sending alerts in background...`);
+        // Do NOT await so the teacher gets an immediate response
+        notifyAbsentees(sessionData.id, sessionData.branch, sessionData.section, sessionData.semester, sessionData.subject || 'Lecture')
+            .catch(err => console.error('[SESSION] Background alert error:', err));
     }
 
-    return res.json({ success: true });
+    return res.json({ success: true, message: 'Session closed successfully' });
+};
+
+export const extendSession = async (req, res) => {
+    if (req.user.role !== 'teacher') return res.status(403).json({ error: 'Forbidden' });
+    const { id } = req.params;
+    const { duration } = req.body; // duration in minutes to add
+
+    const addMins = parseInt(duration) || 5;
+
+    if (supabase) {
+        // Get current expiry
+        const { data: session, error: fetchError } = await supabase.from('attendance_sessions').select('*').eq('id', id).single();
+        if (fetchError || !session) return res.status(404).json({ error: 'Session not found' });
+
+        const currentExpiry = new Date(session.expiry_time);
+        const newExpiry = new Date(currentExpiry.getTime() + addMins * 60000);
+
+        const { data, error } = await supabase.from('attendance_sessions')
+            .update({ expiry_time: newExpiry.toISOString() })
+            .eq('id', id)
+            .select();
+
+        if (error) return res.status(400).json({ error: error.message });
+
+        const row = data[0];
+
+        // Update timeout if it exists
+        if (sessionTimeouts.has(id)) {
+            clearTimeout(sessionTimeouts.get(id));
+            const remainingMs = newExpiry.getTime() - new Date().getTime();
+            const timeoutHandle = setTimeout(() => {
+                notifyAbsentees(id, row.branch, row.section, row.semester, row.subject || 'Lecture');
+                sessionTimeouts.delete(id);
+            }, remainingMs + 5000);
+            sessionTimeouts.set(id, timeoutHandle);
+        }
+
+        return res.json(row);
+    } else {
+        const session = mockSessions.find(s => s.id === id);
+        if (!session) return res.status(404).json({ error: 'Session not found' });
+
+        const currentExpiry = new Date(session.expiry_time);
+        const newExpiry = new Date(currentExpiry.getTime() + addMins * 60000);
+        session.expiry_time = newExpiry.toISOString();
+
+        if (sessionTimeouts.has(id)) {
+            clearTimeout(sessionTimeouts.get(id));
+            const remainingMs = newExpiry.getTime() - new Date().getTime();
+            const timeoutHandle = setTimeout(() => {
+                notifyAbsentees(id, session.branch, session.section, session.semester, session.subject || 'Lecture');
+                sessionTimeouts.delete(id);
+            }, remainingMs + 5000);
+            sessionTimeouts.set(id, timeoutHandle);
+        }
+
+        return res.json(session);
+    }
 };
 
 export const getSessionHistory = async (req, res) => {

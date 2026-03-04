@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import {
     Users, MapPin, Clock, LogOut, Zap, Play, Square,
     ShieldCheck, Smartphone, LayoutDashboard, Activity,
-    CheckCircle2, Lock, Radio, History,
+    CheckCircle2, Lock, Radio, History, Plus, Timer,
     Crosshair, MousePointer2, AlertTriangle, Save, X, Loader2
 } from 'lucide-react';
 import { MapContainer, TileLayer, Marker, useMapEvents, useMap } from 'react-leaflet';
@@ -75,16 +75,57 @@ const TeacherDashboard = () => {
     }, []);
 
     const terminateSession = useCallback(async (sessionId) => {
+        setLoading(true);
         try {
-            await fetch(`${API}/api/sessions/${sessionId}/close`, {
+            const res = await fetch(`${API}/api/sessions/${sessionId}/close`, {
                 method: 'POST',
                 headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
             });
-        } catch (e) { console.error(e); }
-        setActiveSession(null);
-        setTimeLeft(0);
-        setStats({ presentCount: 0 });
+            if (res.ok) {
+                toast.success('Session closed successfully');
+                setActiveSession(null);
+                setTimeLeft(0);
+                setStats({ presentCount: 0 });
+            } else {
+                toast.error('Failed to close session');
+            }
+        } catch (e) {
+            console.error(e);
+            toast.error('Error closing session');
+        } finally {
+            setLoading(false);
+        }
     }, []);
+
+    const extendTimer = async (mins = 5) => {
+        if (!activeSession) return;
+        setLoading(true);
+        try {
+            const res = await fetch(`${API}/api/sessions/${activeSession.id}/extend`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`
+                },
+                body: JSON.stringify({ duration: mins })
+            });
+            if (res.ok) {
+                const updatedSession = await res.json();
+                setActiveSession(updatedSession);
+                const expiry = new Date(updatedSession.expiry_time).getTime();
+                const now = new Date().getTime();
+                const remaining = Math.max(0, Math.floor((expiry - now) / 1000));
+                setTimeLeft(remaining);
+                toast.success(`Session extended by ${mins}m`);
+            } else {
+                toast.error('Failed to extend session');
+            }
+        } catch (err) {
+            toast.error('Error extending session');
+        } finally {
+            setLoading(false);
+        }
+    };
 
     const calibrateLocation = async () => {
         setCalibrating(true);
@@ -505,12 +546,20 @@ const TeacherDashboard = () => {
                             </div>
                         </div>
 
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr 1fr', gap: '1rem' }}>
+                            <button
+                                onClick={() => extendTimer(5)}
+                                disabled={loading}
+                                style={{ height: '58px', background: 'linear-gradient(135deg, #4f46e5 0%, #2563eb 100%)', color: 'white', border: 'none', borderRadius: '16px', fontWeight: 800, cursor: loading ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.6rem', boxShadow: '0 4px 12px rgba(79,70,229,0.2)' }}
+                            >
+                                <Timer size={18} /> {loading ? '...' : 'Extend +5m'}
+                            </button>
                             <button
                                 onClick={() => terminateSession(activeSession.id)}
-                                style={{ height: '58px', background: '#f8fafc', border: '2px solid #e2e8f0', color: '#64748b', borderRadius: '16px', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.6rem' }}
+                                disabled={loading}
+                                style={{ height: '58px', background: '#f8fafc', border: '2px solid #e2e8f0', color: '#64748b', borderRadius: '16px', fontWeight: 800, cursor: loading ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.6rem' }}
                             >
-                                <Square size={18} fill="currentColor" /> Finish Early
+                                <Square size={18} fill="currentColor" /> {loading ? '...' : 'Finish Early'}
                             </button>
                             <button
                                 onClick={async () => {
