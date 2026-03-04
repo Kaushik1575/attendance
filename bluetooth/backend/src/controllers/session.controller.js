@@ -246,94 +246,110 @@ export const closeSession = async (req, res) => {
     if (req.user.role !== 'teacher') return res.status(403).json({ error: 'Forbidden' });
     const sessionId = req.params.id;
 
+    // Clear local timeout if it exists (only works if same instance)
     if (sessionTimeouts.has(sessionId)) {
         clearTimeout(sessionTimeouts.get(sessionId));
         sessionTimeouts.delete(sessionId);
     }
 
-    let sessionData = null;
+    try {
+        let sessionData = null;
 
-    if (supabase) {
-        const { data: fetchSession } = await supabase.from('attendance_sessions').select('*').eq('id', sessionId).single();
-        sessionData = fetchSession;
+        if (supabase) {
+            // Update status first
+            const { data: updated, error: uErr } = await supabase.from('attendance_sessions')
+                .update({ status: 'closed' })
+                .eq('id', sessionId)
+                .select()
+                .single();
 
-        const { error } = await supabase.from('attendance_sessions')
-            .update({ status: 'closed' })
-            .eq('id', sessionId);
-        if (error) return res.status(400).json({ error: error.message });
-    } else {
-        const s = mockSessions.find(s => s.id === sessionId);
-        if (s) {
-            s.status = 'closed';
-            sessionData = s;
+            if (uErr) return res.status(400).json({ error: uErr.message });
+            sessionData = updated;
+        } else {
+            const s = mockSessions.find(s => s.id === sessionId);
+            if (s) {
+                s.status = 'closed';
+                sessionData = s;
+            }
         }
-    }
 
-    if (sessionData) {
-        console.log(`[SESSION] Manual closure triggered for ${sessionId}. Sending alerts in background...`);
-        // Do NOT await so the teacher gets an immediate response
+        if (!sessionData) return res.status(404).json({ error: 'Session not found' });
+
+        // Send response immediately to unblock UI
+        res.json({ success: true, message: 'Session closed. Alerts are being dispatched.' });
+
+        // On Vercel, this might still be killed, but since we updated status to 'closed',
+        // the background sync (cron) won't pick it up again as 'active'.
+        // We TRY to send alerts now.
+        console.log(`[SESSION] Manual closure triggered for ${sessionId}. Dispatching...`);
         notifyAbsentees(sessionData.id, sessionData.branch, sessionData.section, sessionData.semester, sessionData.subject || 'Lecture')
-            .catch(err => console.error('[SESSION] Background alert error:', err));
-    }
+            .catch(err => console.error('[SESSION] alert error:', err));
 
-    return res.json({ success: true, message: 'Session closed successfully' });
+    } catch (err) {
+        console.error('[SESSION] Close error:', err);
+        if (!res.headersSent) res.status(500).json({ error: 'Internal server error' });
+    }
 };
 
 export const extendSession = async (req, res) => {
     if (req.user.role !== 'teacher') return res.status(403).json({ error: 'Forbidden' });
     const { id } = req.params;
-    const { duration } = req.body; // duration in minutes to add
+    const { duration } = req.body;
 
     const addMins = parseInt(duration) || 5;
 
-    if (supabase) {
-        // Get current expiry
-        const { data: session, error: fetchError } = await supabase.from('attendance_sessions').select('*').eq('id', id).single();
-        if (fetchError || !session) return res.status(404).json({ error: 'Session not found' });
+    try {
+        if (supabase) {
+            const { data: session, error: fetchError } = await supabase.from('attendance_sessions').select('*').eq('id', id).single();
+            if (fetchError || !session) return res.status(404).json({ error: 'Session not found' });
 
-        const currentExpiry = new Date(session.expiry_time);
-        const newExpiry = new Date(currentExpiry.getTime() + addMins * 60000);
+            const currentExpiry = new Date(session.expiry_time);
+            const newExpiry = new Date(currentExpiry.getTime() + addMins * 60000);
 
-        const { data, error } = await supabase.from('attendance_sessions')
-            .update({ expiry_time: newExpiry.toISOString() })
-            .eq('id', id)
-            .select();
+            const { data: updated, error: updateError } = await supabase.from('attendance_sessions')
+                .update({ expiry_time: newExpiry.toISOString(), status: 'active' }) // Ensure it stays/becomes active
+                .eq('id', id)
+                .select()
+                .single();
 
-        if (error) return res.status(400).json({ error: error.message });
+            if (updateError) return res.status(400).json({ error: updateError.message });
 
-        const row = data[0];
+            // Update local timeout if it exists
+            if (sessionTimeouts.has(id)) {
+                clearTimeout(sessionTimeouts.get(id));
+                const remainingMs = newExpiry.getTime() - new Date().getTime();
+                const timeoutHandle = setTimeout(() => {
+                    notifyAbsentees(id, updated.branch, updated.section, updated.semester, updated.subject || 'Lecture');
+                    sessionTimeouts.delete(id);
+                }, Math.max(0, remainingMs) + 5000);
+                sessionTimeouts.set(id, timeoutHandle);
+            }
 
-        // Update timeout if it exists
-        if (sessionTimeouts.has(id)) {
-            clearTimeout(sessionTimeouts.get(id));
-            const remainingMs = newExpiry.getTime() - new Date().getTime();
-            const timeoutHandle = setTimeout(() => {
-                notifyAbsentees(id, row.branch, row.section, row.semester, row.subject || 'Lecture');
-                sessionTimeouts.delete(id);
-            }, remainingMs + 5000);
-            sessionTimeouts.set(id, timeoutHandle);
+            return res.json(updated);
+        } else {
+            const session = mockSessions.find(s => s.id === id);
+            if (!session) return res.status(404).json({ error: 'Session not found' });
+
+            const currentExpiry = new Date(session.expiry_time);
+            const newExpiry = new Date(currentExpiry.getTime() + addMins * 60000);
+            session.expiry_time = newExpiry.toISOString();
+            session.status = 'active';
+
+            if (sessionTimeouts.has(id)) {
+                clearTimeout(sessionTimeouts.get(id));
+                const remainingMs = newExpiry.getTime() - new Date().getTime();
+                const timeoutHandle = setTimeout(() => {
+                    notifyAbsentees(id, session.branch, session.section, session.semester, session.subject || 'Lecture');
+                    sessionTimeouts.delete(id);
+                }, Math.max(0, remainingMs) + 5000);
+                sessionTimeouts.set(id, timeoutHandle);
+            }
+
+            return res.json(session);
         }
-
-        return res.json(row);
-    } else {
-        const session = mockSessions.find(s => s.id === id);
-        if (!session) return res.status(404).json({ error: 'Session not found' });
-
-        const currentExpiry = new Date(session.expiry_time);
-        const newExpiry = new Date(currentExpiry.getTime() + addMins * 60000);
-        session.expiry_time = newExpiry.toISOString();
-
-        if (sessionTimeouts.has(id)) {
-            clearTimeout(sessionTimeouts.get(id));
-            const remainingMs = newExpiry.getTime() - new Date().getTime();
-            const timeoutHandle = setTimeout(() => {
-                notifyAbsentees(id, session.branch, session.section, session.semester, session.subject || 'Lecture');
-                sessionTimeouts.delete(id);
-            }, remainingMs + 5000);
-            sessionTimeouts.set(id, timeoutHandle);
-        }
-
-        return res.json(session);
+    } catch (err) {
+        console.error('[SESSION] Extension error:', err);
+        res.status(500).json({ error: 'Internal server error' });
     }
 };
 
