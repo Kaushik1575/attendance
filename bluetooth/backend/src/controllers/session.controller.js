@@ -56,6 +56,7 @@ export const startSession = async (req, res) => {
                     teacher_id: session.teacher_id,
                     branch: session.branch,
                     section: session.section,
+                    semester: session.semester || '1',
                     subject: session.subject || 'Lecture',
                     lat: lat, lng: lng,
                     otp: session.otp,
@@ -275,16 +276,16 @@ export const closeSession = async (req, res) => {
 
         if (!sessionData) return res.status(404).json({ error: 'Session not found' });
 
-        // Send response immediately to unblock UI
-        res.json({ success: true, message: 'Session closed. Alerts are being dispatched.' });
+        console.log(`[SESSION] Manual closure triggered for ${sessionId}. Dispatching alerts...`);
 
-        // On Vercel, this might still be killed, but since we updated status to 'closed',
-        // the background sync (cron) won't pick it up again as 'active'.
-        // We TRY to send alerts now.
-        console.log(`[SESSION] Manual closure triggered for ${sessionId}. Dispatching...`);
-        notifyAbsentees(sessionData.id, sessionData.branch, sessionData.section, sessionData.semester, sessionData.subject || 'Lecture')
-            .catch(err => console.error('[SESSION] alert error:', err));
-
+        // Await notifications BEFORE responding on Vercel to ensure completion
+        try {
+            await notifyAbsentees(sessionData.id, sessionData.branch, sessionData.section, sessionData.semester, sessionData.subject || 'Lecture');
+            return res.json({ success: true, message: 'Session closed and alerts dispatched.' });
+        } catch (alertError) {
+            console.error('[SESSION] Alert dispatch error:', alertError);
+            return res.json({ success: true, message: 'Session closed, but alerts encountered an error.' });
+        }
     } catch (err) {
         console.error('[SESSION] Close error:', err);
         if (!res.headersSent) res.status(500).json({ error: 'Internal server error' });
@@ -314,16 +315,17 @@ export const extendSession = async (req, res) => {
 
             if (updateError) return res.status(400).json({ error: updateError.message });
 
-            // Update local timeout if it exists
+            // Update local timeout (Clear old and set new, even if old not found locally)
             if (sessionTimeouts.has(id)) {
                 clearTimeout(sessionTimeouts.get(id));
-                const remainingMs = newExpiry.getTime() - new Date().getTime();
-                const timeoutHandle = setTimeout(() => {
-                    notifyAbsentees(id, updated.branch, updated.section, updated.semester, updated.subject || 'Lecture');
-                    sessionTimeouts.delete(id);
-                }, Math.max(0, remainingMs) + 5000);
-                sessionTimeouts.set(id, timeoutHandle);
             }
+
+            const remainingMs = newExpiry.getTime() - new Date().getTime();
+            const timeoutHandle = setTimeout(() => {
+                notifyAbsentees(id, updated.branch, updated.section, updated.semester, updated.subject || 'Lecture');
+                sessionTimeouts.delete(id);
+            }, Math.max(0, remainingMs) + 5000);
+            sessionTimeouts.set(id, timeoutHandle);
 
             return res.json(updated);
         } else {
@@ -337,13 +339,14 @@ export const extendSession = async (req, res) => {
 
             if (sessionTimeouts.has(id)) {
                 clearTimeout(sessionTimeouts.get(id));
-                const remainingMs = newExpiry.getTime() - new Date().getTime();
-                const timeoutHandle = setTimeout(() => {
-                    notifyAbsentees(id, session.branch, session.section, session.semester, session.subject || 'Lecture');
-                    sessionTimeouts.delete(id);
-                }, Math.max(0, remainingMs) + 5000);
-                sessionTimeouts.set(id, timeoutHandle);
             }
+
+            const remainingMs = newExpiry.getTime() - new Date().getTime();
+            const timeoutHandle = setTimeout(() => {
+                notifyAbsentees(id, session.branch, session.section, session.semester, session.subject || 'Lecture');
+                sessionTimeouts.delete(id);
+            }, Math.max(0, remainingMs) + 5000);
+            sessionTimeouts.set(id, timeoutHandle);
 
             return res.json(session);
         }

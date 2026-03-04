@@ -23,7 +23,7 @@ export const notifyAbsentees = async (sessionId, branch, section, semester, subj
 
         if (supabase) {
             const { data: students, error: sErr } = await supabase.from('students').select('id, name, email, mobile, parent_mobile')
-                .eq('branch', branch.trim()).eq('section', section.trim()).eq('semester', String(semester));
+                .eq('branch', (branch || '').trim()).eq('section', (section || '').trim()).eq('semester', String(semester || '1'));
 
             if (sErr) console.log('[AUTO-NOTIFY] Error fetching students:', sErr);
             console.log(`[AUTO-NOTIFY] Found ${students?.length || 0} total students in this class.`);
@@ -36,7 +36,7 @@ export const notifyAbsentees = async (sessionId, branch, section, semester, subj
             absentees = (students || []).filter(s => !attendedIds.has(s.id));
             console.log(`[AUTO-NOTIFY] Result: Identified ${absentees.length} absentees based on missing IDs.`);
         } else {
-            studentsList = mockStudents.filter(s => s.branch === branch && s.section === section && s.semester == semester);
+            studentsList = mockStudents.filter(s => s.branch === branch && s.section === section && s.semester == (semester || '1'));
             const attendedIds = new Set(mockRecords.filter(r => r.session_id === sessionId).map(r => r.student_id));
             absentees = studentsList.filter(s => !attendedIds.has(s.id));
         }
