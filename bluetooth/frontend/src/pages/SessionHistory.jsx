@@ -374,7 +374,7 @@ const SessionHistory = () => {
                                             fetchHistory(true);
                                         }
                                     }}
-                                    className="w-full bg-indigo-600 text-white py-5 rounded-[1.5rem] font-black text-xs uppercase tracking-[0.2em] shadow-2xl shadow-indigo-100 hover:bg-slate-900 transition-all active:scale-[0.98] flex items-center justify-center gap-3"
+                                    className="w-full bg-indigo-600 text-white py-4 rounded-[1.5rem] font-black text-xs uppercase tracking-[0.2em] shadow-2xl shadow-indigo-100 hover:bg-slate-900 transition-all active:scale-[0.98] flex items-center justify-center gap-3"
                                 >
                                     {loading ? (
                                         <><Loader2 className="animate-spin" size={18} /> Verifying Archives...</>
@@ -481,14 +481,17 @@ const SessionHistory = () => {
                         <div className="min-w-0 space-y-6">
                             {/* Mobile Grid/Slider Switcher (Hidden on MD+) */}
                             {isMobile && selectedSession && (
-                                <div className="overflow-x-auto pb-4 flex gap-3 -mx-4 px-4 scrollbar-hide">
+                                <div className="overflow-x-auto pb-6 flex gap-3 -mx-4 px-4 scrollbar-hide">
                                     {filteredSessions.slice(0, 10).map(s => (
                                         <button
                                             key={s.id}
                                             onClick={() => handleSessionSelect(s)}
-                                            className={`shrink-0 px-6 py-3 rounded-2xl text-xs font-black uppercase tracking-widest border-2 transition-all active:scale-95 ${selectedSession?.id === s.id ? 'bg-indigo-600 text-white border-indigo-600 shadow-xl shadow-indigo-100' : 'bg-white text-slate-500 border-slate-100 shadow-sm'}`}
+                                            className={`shrink-0 px-6 py-4 rounded-[1.25rem] border-2 transition-all active:scale-95 flex flex-col items-center justify-center min-w-[90px] ${selectedSession?.id === s.id ? 'bg-indigo-600 text-white border-indigo-600 shadow-xl shadow-indigo-100' : 'bg-white text-slate-600 border-slate-100 shadow-sm'}`}
                                         >
-                                            {s.subject}
+                                            <span className="text-[11px] font-black uppercase tracking-wider leading-none mb-1.5">{s.subject}</span>
+                                            <span className={`text-[9px] font-bold uppercase tracking-widest ${selectedSession?.id === s.id ? 'text-indigo-100/80' : 'text-slate-400'}`}>
+                                                {new Date(s.start_time).toLocaleDateString([], { day: 'numeric', month: 'short' })}
+                                            </span>
                                         </button>
                                     ))}
                                 </div>
@@ -541,13 +544,13 @@ const SessionHistory = () => {
                                             <div className="flex flex-col xl:flex-row gap-4 shrink-0">
                                                 <button
                                                     onClick={() => setShowStudentSearch(true)}
-                                                    className="flex-1 xl:flex-none flex items-center justify-center gap-3 bg-indigo-600 text-white px-8 py-4.5 rounded-[1.5rem] text-sm font-black uppercase tracking-widest hover:bg-indigo-700 hover:shadow-2xl transition-all active:scale-95 shadow-lg"
+                                                    className="flex-1 xl:flex-none flex items-center justify-center gap-3 bg-indigo-600 text-white px-8 py-3.5 rounded-[1.5rem] text-sm font-black uppercase tracking-widest hover:bg-indigo-700 hover:shadow-2xl transition-all active:scale-95 shadow-lg"
                                                 >
                                                     <UserPlus size={20} /> Add Student
                                                 </button>
                                                 <button
                                                     onClick={downloadPDF}
-                                                    className="flex-1 xl:flex-none flex items-center justify-center gap-3 bg-slate-900 text-white px-8 py-4.5 rounded-[1.5rem] text-sm font-black uppercase tracking-widest hover:bg-black hover:shadow-2xl transition-all active:scale-95 shadow-lg"
+                                                    className="flex-1 xl:flex-none flex items-center justify-center gap-3 bg-slate-900 text-white px-8 py-3.5 rounded-[1.5rem] text-sm font-black uppercase tracking-widest hover:bg-black hover:shadow-2xl transition-all active:scale-95 shadow-lg"
                                                 >
                                                     <Download size={20} /> Export PDF
                                                 </button>
