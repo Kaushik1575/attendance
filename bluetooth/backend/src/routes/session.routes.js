@@ -2,7 +2,8 @@ import express from 'express';
 import {
     startSession, cancelSession, resendAlerts,
     getActiveSessionStudent, getActiveSessionTeacher, closeSession, extendSession,
-    getSessionHistory, getDetailedHistory, getSessionStudents, getSessionStats
+    getSessionHistory, getDetailedHistory, getSessionStudents, getSessionStats,
+    markStudentPresent, getAbsentees, searchStudents
 } from '../controllers/session.controller.js';
 import { verifyToken } from '../middlewares/auth.middleware.js';
 
@@ -17,7 +18,10 @@ router.post('/:id/close', verifyToken, closeSession);
 router.post('/:id/extend', verifyToken, extendSession);
 router.get('/history', verifyToken, getSessionHistory);
 router.get('/detailed-history', verifyToken, getDetailedHistory);
+router.get('/search-students', verifyToken, searchStudents);
 router.get('/:id/students', verifyToken, getSessionStudents);
+router.get('/:id/absentees', verifyToken, getAbsentees);
+router.post('/:id/mark-present', verifyToken, markStudentPresent);
 router.get('/:id/stats', verifyToken, getSessionStats);
 
 export default router;

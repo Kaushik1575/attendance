@@ -443,6 +443,120 @@ export const getDetailedHistory = async (req, res) => {
     }
 };
 
+export const markStudentPresent = async (req, res) => {
+    if (req.user.role !== 'teacher') return res.status(403).json({ error: 'Forbidden' });
+    const { id: sessionId } = req.params;
+    const { studentId } = req.body;
+
+    if (!studentId) return res.status(400).json({ error: 'Missing studentId' });
+
+    if (supabase) {
+        const payload = {
+            session_id: sessionId,
+            student_id: studentId,
+            status: 'present',
+            student_lat: 0,
+            student_lng: 0,
+            distance: 0
+        };
+        const { error } = await supabase.from('attendance_records').insert(payload);
+        if (error) {
+            if (error.code === '23505') return res.status(400).json({ error: 'Attendance already marked for this student' });
+            return res.status(400).json({ error: error.message });
+        }
+        return res.json({ success: true, message: 'Student marked present successfully' });
+    } else {
+        if (mockRecords.some(r => r.session_id === sessionId && r.student_id === studentId)) {
+            return res.status(400).json({ error: 'Attendance already marked' });
+        }
+        mockRecords.push({
+            id: Date.now().toString(),
+            session_id: sessionId,
+            student_id: studentId,
+            status: 'present',
+            student_lat: 0,
+            student_lng: 0,
+            distance: 0,
+            timestamp: new Date().toISOString()
+        });
+        return res.json({ success: true, message: 'Student marked present successfully (Mock Mode)' });
+    }
+};
+
+export const getAbsentees = async (req, res) => {
+    if (req.user.role !== 'teacher') return res.status(403).json({ error: 'Forbidden' });
+    const { id: sessionId } = req.params;
+
+    try {
+        let session;
+        if (supabase) {
+            const { data } = await supabase.from('attendance_sessions').select('*').eq('id', sessionId).single();
+            session = data;
+        } else {
+            session = mockSessions.find(s => s.id === sessionId);
+        }
+
+        if (!session) return res.status(404).json({ error: 'Session not found' });
+
+        if (supabase) {
+            const { data: allStudents, error: sErr } = await supabase.from('students')
+                .select('id, name, roll_no')
+                .eq('branch', session.branch)
+                .eq('section', session.section)
+                .eq('semester', session.semester);
+
+            if (sErr) throw sErr;
+
+            const { data: presentRecords, error: pErr } = await supabase.from('attendance_records')
+                .select('student_id')
+                .eq('session_id', sessionId);
+
+            if (pErr) throw pErr;
+
+            const presentIds = new Set(presentRecords.map(r => r.student_id));
+            const absentees = allStudents.filter(s => !presentIds.has(s.id));
+
+            return res.json(absentees);
+        } else {
+            const allStudents = mockStudents.filter(s =>
+                s.branch === session.branch &&
+                s.section === session.section &&
+                s.semester === session.semester
+            );
+
+            const presentIds = new Set(mockRecords.filter(r => r.session_id === sessionId).map(r => r.student_id));
+            const absentees = allStudents.filter(s => !presentIds.has(s.id));
+
+            return res.json(absentees);
+        }
+    } catch (error) {
+        console.error('getAbsentees Error:', error);
+        res.status(500).json({ error: error.message });
+    }
+};
+
+export const searchStudents = async (req, res) => {
+    if (req.user.role !== 'teacher') return res.status(403).json({ error: 'Forbidden' });
+    const { query } = req.query;
+
+    if (!query || query.length < 2) return res.json([]);
+
+    if (supabase) {
+        const { data, error } = await supabase.from('students')
+            .select('id, name, roll_no, branch, section, semester')
+            .or(`name.ilike.%${query}%,roll_no.ilike.%${query}%`)
+            .limit(10);
+        if (error) return res.status(400).json({ error: error.message });
+        return res.json(data || []);
+    } else {
+        const results = mockStudents.filter(s =>
+            s.name.toLowerCase().includes(query.toLowerCase()) ||
+            s.roll_no.toLowerCase().includes(query.toLowerCase())
+        ).slice(0, 10);
+        return res.json(results);
+    }
+};
+
 export const getSessionStudents = async (req, res) => {
     const sessionId = req.params.id;
     if (supabase) {
