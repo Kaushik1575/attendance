@@ -159,10 +159,13 @@ const TeacherDashboard = () => {
                 toast.success('Location synced automatically.', { id: 'auto-gps' });
             }).catch(err => {
                 console.warn('Auto GPS fetch failed:', err);
-                if (err.code === 1) {
-                    toast.error('Location Access Denied. Please enable permissions in browser settings.', { id: 'auto-gps' });
-                } else if (err.code === 2) {
-                    toast.error('⚠️ Please turn on your mobile Location/GPS.', { id: 'auto-gps' });
+                // On initial load, don't show a scary red error. Show a helpful guide.
+                if (err.code === 1 || err.code === 2) {
+                    toast('📍 Tip: Tap "Sync Classroom Map" below and ensure Mobile GPS is ON.', {
+                        id: 'auto-gps',
+                        duration: 5000,
+                        style: { background: '#f0f9ff', color: '#0369a1', border: '1px solid #bae6fd', fontSize: '0.85rem', fontWeight: 600 }
+                    });
                 }
             }).finally(() => {
                 setCalibrating(false);
