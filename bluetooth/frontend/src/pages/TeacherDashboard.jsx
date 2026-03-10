@@ -135,13 +135,13 @@ const TeacherDashboard = () => {
             setShowMapPicker(true);
             toast.success('Estimated position locked. Fine-tune on map.');
         } catch (err) {
-            // Do NOT set a fake fallback location if GPS fails
+            // Helpful guidance for manual sync failures
             if (err.code === 1) {
-                toast.error('Location Access Denied. Please allow location in browser settings.', { id: 'gps-error' });
+                toast.error('📍 Mobile GPS Denied. Please tap the "Lock" icon in your URL bar and set Location to "Allow".', { id: 'gps-error', duration: 6000 });
             } else if (err.code === 2) {
-                toast.error('Location Unavailable. Please turn on your mobile GPS/Location.', { id: 'gps-error' });
+                toast.error('⚠️ Mobile GPS is OFF. Please pull down your notification tray and turn on Location.', { id: 'gps-error', duration: 6000 });
             } else if (err.code === 3) {
-                toast.error('Location request timed out. Try again in an open area.', { id: 'gps-error' });
+                toast.error('⌛ GPS Timeout. Try moving closer to a window for a better signal.', { id: 'gps-error' });
             } else {
                 toast.error(`GPS Error: ${err.message || 'Could not fetch location'}`);
             }
