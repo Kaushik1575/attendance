@@ -136,7 +136,15 @@ const TeacherDashboard = () => {
             toast.success('Estimated position locked. Fine-tune on map.');
         } catch (err) {
             // Do NOT set a fake fallback location if GPS fails
-            toast.error(`GPS Error: ${err.message || 'Could not fetch location'}`);
+            if (err.code === 1) {
+                toast.error('Location Access Denied. Please allow location in browser settings.', { id: 'gps-error' });
+            } else if (err.code === 2) {
+                toast.error('Location Unavailable. Please turn on your mobile GPS/Location.', { id: 'gps-error' });
+            } else if (err.code === 3) {
+                toast.error('Location request timed out. Try again in an open area.', { id: 'gps-error' });
+            } else {
+                toast.error(`GPS Error: ${err.message || 'Could not fetch location'}`);
+            }
         } finally {
             setCalibrating(false);
         }
@@ -152,7 +160,9 @@ const TeacherDashboard = () => {
             }).catch(err => {
                 console.warn('Auto GPS fetch failed:', err);
                 if (err.code === 1) {
-                    toast.error('Location Access Denied. Please enable location permissions in browser settings.', { id: 'auto-gps' });
+                    toast.error('Location Access Denied. Please enable permissions in browser settings.', { id: 'auto-gps' });
+                } else if (err.code === 2) {
+                    toast.error('⚠️ Please turn on your mobile Location/GPS.', { id: 'auto-gps' });
                 }
             }).finally(() => {
                 setCalibrating(false);
