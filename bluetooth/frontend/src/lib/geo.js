@@ -23,32 +23,37 @@ export function getCurrentLocation(options = { highAccuracy: true }) {
 
         const highAccuracy = options.highAccuracy !== false;
 
-        const performRequest = (isHigh) => {
-            navigator.geolocation.getCurrentPosition(
-                (position) => {
-                    resolve({
-                        lat: position.coords.latitude,
-                        lng: position.coords.longitude,
-                        accuracy: position.coords.accuracy
-                    });
-                },
-                (error) => {
-                    // If high accuracy failed and it wasn't a permission denial (code 1), 
-                    // try a low accuracy fallback.
-                    if (isHigh && error.code !== 1) {
-                        performRequest(false);
-                    } else {
-                        reject(error);
-                    }
-                },
-                {
-                    enableHighAccuracy: isHigh,
-                    timeout: isHigh ? 8000 : 5000,
-                    maximumAge: 0
-                }
-            );
+        // Configuration for the request
+        const geoOptions = {
+            enableHighAccuracy: highAccuracy,
+            timeout: highAccuracy ? 10000 : 5000,
+            maximumAge: 0 // Force fresh reading
         };
 
-        performRequest(highAccuracy);
+        const successHandler = (position) => {
+            resolve({
+                lat: position.coords.latitude,
+                lng: position.coords.longitude,
+                accuracy: position.coords.accuracy
+            });
+        };
+
+        const errorHandler = (error) => {
+            // Case 1: If we tried High Accuracy and failed (but NOT because user clicked BLOCK on the browser)
+            // try a low-accuracy fallback automatically.
+            if (highAccuracy && error.code !== error.PERMISSION_DENIED) {
+                console.warn("GPS High Accuracy failed, falling back to low accuracy...");
+                navigator.geolocation.getCurrentPosition(successHandler, (err) => reject(err), {
+                    enableHighAccuracy: false,
+                    timeout: 5000,
+                    maximumAge: 0
+                });
+            } else {
+                // If it's a permission denial (code 1), the browser will block further attempts.
+                reject(error);
+            }
+        };
+
+        navigator.geolocation.getCurrentPosition(successHandler, errorHandler, geoOptions);
     });
 }

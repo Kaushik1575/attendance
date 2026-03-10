@@ -143,16 +143,16 @@ const TeacherDashboard = () => {
     };
 
     useEffect(() => {
-        // Auto-fetch location when dashboard opens (Low accuracy to avoid system popup)
+        // Auto-fetch location when dashboard opens (High accuracy for correct calculation)
         if (navigator.geolocation && !isDemoMode && !manualLocation) {
             setCalibrating(true);
-            getCurrentLocation({ highAccuracy: false }).then(loc => {
+            getCurrentLocation({ highAccuracy: true }).then(loc => {
                 setManualLocation({ lat: loc.lat, lng: loc.lng });
-                toast.success('Approximate location synced.', { id: 'auto-gps' });
+                toast.success('Location synced automatically.', { id: 'auto-gps' });
             }).catch(err => {
                 console.warn('Auto GPS fetch failed:', err);
                 if (err.code === 1) {
-                    toast('Location access blocked. Please click "Sync Classroom Map" below to enable it.', { icon: '📍', id: 'auto-gps', duration: 4000 });
+                    toast.error('Location Access Denied. Please enable location permissions in browser settings.', { id: 'auto-gps' });
                 }
             }).finally(() => {
                 setCalibrating(false);
