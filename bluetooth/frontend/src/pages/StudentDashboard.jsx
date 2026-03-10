@@ -455,7 +455,14 @@ const StudentDashboard = () => {
                             <div style={{ flex: 1 }}>
                                 <div style={{ fontSize: '0.9rem', fontWeight: 800, color: '#1e293b', marginBottom: '0.2rem' }}>Geo-Fence Status</div>
                                 <div style={{ fontSize: '1.25rem', fontWeight: 900, color: gpsStatus === 'ok' ? '#059669' : '#d97706', marginBottom: '0.75rem' }}>
-                                    {liveDistance !== null ? `${liveDistance.toFixed(1)}m from classroom` : 'Locating...'}
+                                    {liveDistance !== null ? (
+                                        <>
+                                            {Math.max(0, liveDistance - locationAccuracy - (activeSession?.teacher_accuracy || 0)).toFixed(1)}m
+                                            <span style={{ fontSize: '0.75rem', color: '#94a3b8', fontWeight: 600, marginLeft: '0.5rem' }}>
+                                                (Raw: {liveDistance.toFixed(0)}m)
+                                            </span>
+                                        </>
+                                    ) : 'Locating...'}
                                 </div>
 
                                 {/* Proximity Progress Bar (Visual relative to 50m) */}
@@ -463,7 +470,7 @@ const StudentDashboard = () => {
                                     <div style={{
                                         position: 'absolute',
                                         left: 0, top: 0, bottom: 0,
-                                        width: liveDistance !== null ? `${Math.min(100, Math.max(5, (1 - (liveDistance / 50)) * 100))}%` : '0%',
+                                        width: liveDistance !== null ? `${Math.min(100, Math.max(5, (1 - (Math.max(0, liveDistance - locationAccuracy - (activeSession?.teacher_accuracy || 0)) / 50)) * 100))}%` : '0%',
                                         background: gpsStatus === 'ok' ? 'linear-gradient(90deg, #10b981, #34d399)' : '#f59e0b',
                                         transition: 'width 0.5s ease-out'
                                     }} />
