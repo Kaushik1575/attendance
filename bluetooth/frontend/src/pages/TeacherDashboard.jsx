@@ -143,15 +143,15 @@ const TeacherDashboard = () => {
     };
 
     useEffect(() => {
-        // Auto-fetch location when dashboard opens
+        // Auto-fetch location when dashboard opens (Low accuracy to avoid system popup)
         if (navigator.geolocation && !isDemoMode && !manualLocation) {
             setCalibrating(true);
-            getCurrentLocation().then(loc => {
+            getCurrentLocation({ highAccuracy: false }).then(loc => {
                 setManualLocation({ lat: loc.lat, lng: loc.lng });
-                toast.success('Location synced automatically.');
+                toast.success('Approximate location synced.');
             }).catch(err => {
                 console.warn('Auto GPS fetch failed:', err);
-                toast.error(`Auto-Sync GPS Error: ${err.message || 'Could not fetch location'}`);
+                // Silent fail for auto-sync - teacher can still calibrate manually
             }).finally(() => {
                 setCalibrating(false);
             });

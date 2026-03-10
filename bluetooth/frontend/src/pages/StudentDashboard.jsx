@@ -211,8 +211,9 @@ const StudentDashboard = () => {
         setLiveDistance(d);
 
         // --- INDUSTRIAL FIX: Accuracy-Adjusted Tolerance ---
-        // Subtract error (accuracy) from distance. Add small 10m buffer for indoor drift.
-        const effectiveDist = Math.max(0, d - locationAccuracy - 10);
+        // Subtract student error (accuracy) and teacher error (stored in session) from distance.
+        const teacherAcc = activeSession.teacher_accuracy || 0;
+        const effectiveDist = Math.max(0, d - locationAccuracy - teacherAcc);
 
         if (locationAccuracy > 50 && effectiveDist > 50) {
             setGpsStatus('scanning');
@@ -274,9 +275,9 @@ const StudentDashboard = () => {
             setLiveLocation({ lat: loc.lat, lng: loc.lng });
 
             // Clientside soft-check (matches backend logic)
-            // --- INDUSTRIAL FIX: Forgiving Range for Indoor Classrooms (120m max) ---
-            if (effectiveDist > 70) {
-                const err = `Still too far (${dist.toFixed(0)}m). Please move closer to the classroom door or a window for better GPS.`;
+            // --- INDUSTRIAL FIX: Forgiving Range for Indoor Classrooms (50m strict) ---
+            if (effectiveDist > 50) {
+                const err = `Still too far (${dist.toFixed(0)}m). You must be within 50m of the classroom (after accounting for ±${loc.accuracy.toFixed(0)}m GPS error).`;
                 setError(err);
                 toast.error(err, { duration: 5000 });
                 setMarking(false);

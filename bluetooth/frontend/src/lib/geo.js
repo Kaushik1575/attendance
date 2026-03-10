@@ -14,12 +14,14 @@ export function getDistance(lat1, lon1, lat2, lon2) {
     return R * c;
 }
 
-export function getCurrentLocation() {
+export function getCurrentLocation(options = { highAccuracy: true }) {
     return new Promise((resolve, reject) => {
         if (!navigator.geolocation) {
             reject(new Error('Geolocation is not supported by your browser'));
             return;
         }
+
+        const highAccuracy = options.highAccuracy !== false;
 
         // 🚨 IMPORTANT: maximumAge: 0 forces a fresh hardware read (no caching)
         navigator.geolocation.getCurrentPosition(
@@ -44,7 +46,7 @@ export function getCurrentLocation() {
                     { enableHighAccuracy: false, timeout: 5000, maximumAge: 0 }
                 );
             },
-            { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 }
+            { enableHighAccuracy: highAccuracy, timeout: highAccuracy ? 8000 : 5000, maximumAge: 0 }
         );
     });
 }
