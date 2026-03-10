@@ -148,10 +148,12 @@ const TeacherDashboard = () => {
             setCalibrating(true);
             getCurrentLocation({ highAccuracy: false }).then(loc => {
                 setManualLocation({ lat: loc.lat, lng: loc.lng });
-                toast.success('Approximate location synced.');
+                toast.success('Approximate location synced.', { id: 'auto-gps' });
             }).catch(err => {
                 console.warn('Auto GPS fetch failed:', err);
-                // Silent fail for auto-sync - teacher can still calibrate manually
+                if (err.code === 1) {
+                    toast('Location access blocked. Please click "Sync Classroom Map" below to enable it.', { icon: '📍', id: 'auto-gps', duration: 4000 });
+                }
             }).finally(() => {
                 setCalibrating(false);
             });

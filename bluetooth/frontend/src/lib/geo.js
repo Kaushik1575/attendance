@@ -23,30 +23,32 @@ export function getCurrentLocation(options = { highAccuracy: true }) {
 
         const highAccuracy = options.highAccuracy !== false;
 
-        // 🚨 IMPORTANT: maximumAge: 0 forces a fresh hardware read (no caching)
-        navigator.geolocation.getCurrentPosition(
-            (position) => {
-                resolve({
-                    lat: position.coords.latitude,
-                    lng: position.coords.longitude,
-                    accuracy: position.coords.accuracy
-                });
-            },
-            (error) => {
-                // Secondary check for non-high accuracy (faster, but less precise)
-                navigator.geolocation.getCurrentPosition(
-                    (position) => {
-                        resolve({
-                            lat: position.coords.latitude,
-                            lng: position.coords.longitude,
-                            accuracy: position.coords.accuracy
-                        });
-                    },
-                    (err) => reject(err),
-                    { enableHighAccuracy: false, timeout: 5000, maximumAge: 0 }
-                );
-            },
-            { enableHighAccuracy: highAccuracy, timeout: highAccuracy ? 8000 : 5000, maximumAge: 0 }
-        );
+        const performRequest = (isHigh) => {
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    resolve({
+                        lat: position.coords.latitude,
+                        lng: position.coords.longitude,
+                        accuracy: position.coords.accuracy
+                    });
+                },
+                (error) => {
+                    // If high accuracy failed and it wasn't a permission denial (code 1), 
+                    // try a low accuracy fallback.
+                    if (isHigh && error.code !== 1) {
+                        performRequest(false);
+                    } else {
+                        reject(error);
+                    }
+                },
+                {
+                    enableHighAccuracy: isHigh,
+                    timeout: isHigh ? 8000 : 5000,
+                    maximumAge: 0
+                }
+            );
+        };
+
+        performRequest(highAccuracy);
     });
 }
