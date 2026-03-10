@@ -135,13 +135,15 @@ const TeacherDashboard = () => {
             setShowMapPicker(true);
             toast.success('Estimated position locked. Fine-tune on map.');
         } catch (err) {
-            // Helpful guidance for manual sync failures
-            if (err.code === 1) {
-                toast.error('📍 Mobile GPS Denied. Please tap the "Lock" icon in your URL bar and set Location to "Allow".', { id: 'gps-error', duration: 6000 });
-            } else if (err.code === 2) {
-                toast.error('⚠️ Mobile GPS is OFF. Please pull down your notification tray and turn on Location.', { id: 'gps-error', duration: 6000 });
+            // Very simple instruction as requested
+            if (err.code === 1 || err.code === 2) {
+                toast('📍 Please turn on Mobile GPS', {
+                    id: 'gps-error',
+                    duration: 5000,
+                    style: { background: '#f0f4ff', color: '#0369a1', border: '1px solid #bae6fd', fontSize: '0.9rem', fontWeight: 700 }
+                });
             } else if (err.code === 3) {
-                toast.error('⌛ GPS Timeout. Try moving closer to a window for a better signal.', { id: 'gps-error' });
+                toast.error('⌛ GPS Timeout. Try moving closer to a window.', { id: 'gps-error' });
             } else {
                 toast.error(`GPS Error: ${err.message || 'Could not fetch location'}`);
             }
@@ -159,12 +161,12 @@ const TeacherDashboard = () => {
                 toast.success('Location synced automatically.', { id: 'auto-gps' });
             }).catch(err => {
                 console.warn('Auto GPS fetch failed:', err);
-                // On initial load, don't show a scary red error. Show a helpful guide.
+                // Simple tip on login
                 if (err.code === 1 || err.code === 2) {
-                    toast('📍 Tip: Tap "Sync Classroom Map" below and ensure Mobile GPS is ON.', {
+                    toast('📍 Tip: Please turn on Mobile GPS', {
                         id: 'auto-gps',
                         duration: 5000,
-                        style: { background: '#f0f9ff', color: '#0369a1', border: '1px solid #bae6fd', fontSize: '0.85rem', fontWeight: 600 }
+                        style: { background: '#f0f4ff', color: '#0369a1', border: '1px solid #bae6fd', fontSize: '0.9rem', fontWeight: 700 }
                     });
                 }
             }).finally(() => {
