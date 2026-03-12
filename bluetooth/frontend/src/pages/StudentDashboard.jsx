@@ -143,38 +143,65 @@ const StudentDashboard = () => {
         return () => clearInterval(timer);
     }, [sessionTimeLeft]);
 
+    // --- LOCATION STABILIZER (NEW) ---
+    const lastValidLoc = useRef(null);
+    const posHistory = useRef([]);
+
     useEffect(() => {
         let watchId;
         if (navigator.geolocation) {
             watchId = navigator.geolocation.watchPosition(
                 (pos) => {
-                    const loc = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-                    const acc = pos.coords.accuracy || 0;
-                    setLiveLocation(loc);
+                    const lat = pos.coords.latitude;
+                    const lng = pos.coords.longitude;
+                    const acc = pos.coords.accuracy || 100;
+
+                    // 1. FILTER: High-Stability Lock (Anti-Jumping)
+                    // If we have a good GPS lock (accuracy < 25m), strictly ignore 
+                    // any reading that has an error > 45m. This kills the "89m" jumps.
+                    if (lastValidLoc.current && lastValidLoc.current.accuracy < 25) {
+                        if (acc > 45) {
+                            console.log("[GPS] Filtered out jumpy reading:", acc, "m");
+                            return;
+                        }
+                    }
+
+                    // 2. STABILIZER: Use Exponential Smoothing (EMA)
+                    let stabilizedLat = lat;
+                    let stabilizedLng = lng;
+
+                    if (lastValidLoc.current) {
+                        // High accuracy = 80% weight to new position
+                        // Low accuracy = 20% weight to new position (slow movement)
+                        const alpha = acc < 20 ? 0.8 : 0.2; 
+                        stabilizedLat = (lat * alpha) + (lastValidLoc.current.lat * (1 - alpha));
+                        stabilizedLng = (lng * alpha) + (lastValidLoc.current.lng * (1 - alpha));
+                    }
+
+                    const newLoc = { lat: stabilizedLat, lng: stabilizedLng, accuracy: acc };
+                    lastValidLoc.current = newLoc;
+
+                    setLiveLocation({ lat: stabilizedLat, lng: stabilizedLng });
                     setLocationAccuracy(acc);
+                    setGpsStatus('ok');
                 },
                 (err) => {
-                    // Ignore timeouts (code 3) as the watch will continue trying
                     if (err.code !== 3) {
                         console.error("Continuous GPS Watch Error:", err);
                         if (err.code === 1) {
-                            toast.error('Location Access Denied. Please enable location services.', { id: 'gps-perm' });
                             setGpsStatus('error');
-                        } else {
-                            // Don't flag as permanent error for transient connection issues
-                            console.warn("Transient GPS issue:", err.message);
+                            toast.error('Location Access Denied.');
                         }
                     }
                 },
                 {
                     enableHighAccuracy: true,
-                    maximumAge: 5000,
+                    maximumAge: 2000,
                     timeout: 10000
                 }
             );
         } else {
             setGpsStatus('error');
-            toast.error('Geolocation is not supported by your browser.');
         }
         return () => { if (watchId) navigator.geolocation.clearWatch(watchId); };
     }, []);
@@ -500,10 +527,12 @@ const StudentDashboard = () => {
                                         onClick={() => {
                                             setGpsStatus('scanning');
                                             getCurrentLocation().then(loc => {
+                                                const manualLoc = { lat: loc.lat, lng: loc.lng, accuracy: loc.accuracy };
+                                                lastValidLoc.current = manualLoc; // Update stabilizer seed
                                                 setLiveLocation({ lat: loc.lat, lng: loc.lng });
                                                 setLocationAccuracy(loc.accuracy);
-                                                toast.success('GPS Refreshed!');
-                                            }).catch(err => toast.error('GPS Refresh failed. Check Permissions.'));
+                                                toast.success('Sync Successful!');
+                                            }).catch(err => toast.error('Check GPS Permissions.'));
                                         }}
                                         style={{
                                             background: '#f1f5f9', border: 'none', borderRadius: '6px', padding: '0.3rem 0.6rem',
