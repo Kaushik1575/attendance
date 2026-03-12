@@ -75,24 +75,10 @@ export const startSession = async (req, res) => {
                 subject, semester, section
             };
 
-            const delayInMs = (durationMins * 60 * 1000) + 10000;
-            const timeoutHandle = setTimeout(() => {
-                notifyAbsentees(row.id, branch, section, semester, subject);
-                sessionTimeouts.delete(row.id);
-            }, delayInMs);
-            sessionTimeouts.set(row.id, timeoutHandle);
-
             return res.json(finalSession);
         }
 
         const row = data[0];
-        const delayInMs = (durationMins * 60 * 1000) + 10000;
-        const timeoutHandle = setTimeout(() => {
-            notifyAbsentees(row.id, branch, section, semester, subject || 'Lecture');
-            sessionTimeouts.delete(row.id);
-        }, delayInMs);
-        sessionTimeouts.set(row.id, timeoutHandle);
-
         return res.json({
             ...row,
             teacher_lat: row.teacher_lat || lat,
@@ -111,14 +97,6 @@ export const startSession = async (req, res) => {
             status: 'active'
         };
         mockSessions.push(mockRow);
-
-        const delayInMs = (durationMins * 60 * 1000) + 5000;
-        const timeoutHandle = setTimeout(() => {
-            notifyAbsentees(mockRow.id, branch, section, semester, subject || 'Lecture');
-            sessionTimeouts.delete(mockRow.id);
-        }, delayInMs);
-        sessionTimeouts.set(mockRow.id, timeoutHandle);
-
         return res.json(mockRow);
     }
 };
@@ -126,11 +104,6 @@ export const startSession = async (req, res) => {
 export const cancelSession = async (req, res) => {
     if (req.user.role !== 'teacher') return res.status(403).json({ error: 'Forbidden' });
     const { id } = req.params;
-
-    if (sessionTimeouts.has(id)) {
-        clearTimeout(sessionTimeouts.get(id));
-        sessionTimeouts.delete(id);
-    }
 
     if (supabase) {
         await supabase.from('attendance_records').delete().eq('session_id', id);
@@ -247,12 +220,6 @@ export const closeSession = async (req, res) => {
     if (req.user.role !== 'teacher') return res.status(403).json({ error: 'Forbidden' });
     const sessionId = req.params.id;
 
-    // Clear local timeout if it exists (only works if same instance)
-    if (sessionTimeouts.has(sessionId)) {
-        clearTimeout(sessionTimeouts.get(sessionId));
-        sessionTimeouts.delete(sessionId);
-    }
-
     try {
         let sessionData = null;
 
@@ -313,20 +280,6 @@ export const extendSession = async (req, res) => {
                 .select()
                 .single();
 
-            if (updateError) return res.status(400).json({ error: updateError.message });
-
-            // Update local timeout (Clear old and set new, even if old not found locally)
-            if (sessionTimeouts.has(id)) {
-                clearTimeout(sessionTimeouts.get(id));
-            }
-
-            const remainingMs = newExpiry.getTime() - new Date().getTime();
-            const timeoutHandle = setTimeout(() => {
-                notifyAbsentees(id, updated.branch, updated.section, updated.semester, updated.subject || 'Lecture');
-                sessionTimeouts.delete(id);
-            }, Math.max(0, remainingMs) + 5000);
-            sessionTimeouts.set(id, timeoutHandle);
-
             return res.json(updated);
         } else {
             const session = mockSessions.find(s => s.id === id);
@@ -336,17 +289,6 @@ export const extendSession = async (req, res) => {
             const newExpiry = new Date(currentExpiry.getTime() + addMins * 60000);
             session.expiry_time = newExpiry.toISOString();
             session.status = 'active';
-
-            if (sessionTimeouts.has(id)) {
-                clearTimeout(sessionTimeouts.get(id));
-            }
-
-            const remainingMs = newExpiry.getTime() - new Date().getTime();
-            const timeoutHandle = setTimeout(() => {
-                notifyAbsentees(id, session.branch, session.section, session.semester, session.subject || 'Lecture');
-                sessionTimeouts.delete(id);
-            }, Math.max(0, remainingMs) + 5000);
-            sessionTimeouts.set(id, timeoutHandle);
 
             return res.json(session);
         }

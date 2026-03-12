@@ -88,15 +88,20 @@ export const cronCleanup = async (req, res) => {
     try {
         if (supabase) {
             // Find sessions that are active but past their expiry time
+            // IMPORTANT: We only process sessions that expired in the last 2 hours
+            // to avoid "false calls" for ancient sessions when a teacher logs in.
+            const twoHoursAgo = new Date(now.getTime() - 2 * 60 * 60 * 1000);
+
             const { data, error } = await supabase.from('attendance_sessions')
                 .select('*')
                 .eq('status', 'active')
-                .lt('expiry_time', now.toISOString());
+                .lt('expiry_time', now.toISOString())
+                .gt('expiry_time', twoHoursAgo.toISOString());
 
             if (error) throw error;
             expiredSessions = data || [];
 
-            // Mark them as closed/expired in DB
+            // Mark them as closed in DB so they aren't processed again
             if (expiredSessions.length > 0) {
                 const ids = expiredSessions.map(s => s.id);
                 await supabase.from('attendance_sessions')
@@ -104,11 +109,18 @@ export const cronCleanup = async (req, res) => {
                     .in('id', ids);
             }
         } else {
-            expiredSessions = mockSessions.filter(s => s.status === 'active' && new Date(s.expiry_time) < now);
+            const twoHoursAgo = new Date(now.getTime() - 2 * 60 * 60 * 1000);
+            expiredSessions = mockSessions.filter(s =>
+                s.status === 'active' &&
+                new Date(s.expiry_time) < now &&
+                new Date(s.expiry_time) > twoHoursAgo
+            );
             expiredSessions.forEach(s => s.status = 'closed');
         }
 
-        console.log(`[CRON] ${now.toISOString()} - Processing ${expiredSessions.length} sessions...`);
+        if (expiredSessions.length > 0) {
+            console.log(`[CRON] ${now.toISOString()} - Processing ${expiredSessions.length} sessions...`);
+        }
 
         // Trigger notifications for each
         for (const session of expiredSessions) {

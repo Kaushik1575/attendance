@@ -293,10 +293,14 @@ const TeacherDashboard = () => {
         };
 
         checkActiveSession();
-        checkSessionCleanup(); // Run once on load
+        
+        // Background sync: Closes expired sessions and triggers emails
+        // We do NOT run this immediately on mount anymore to prevent "false calls" 
+        // for old sessions from yesterday when the teacher just logs in.
+        // It will run for the first time after the interval.
 
-        // Run cleanup every 2 minutes while teacher is on dashboard
-        const cleanupInterval = setInterval(checkSessionCleanup, 120000);
+        // Run cleanup every 5 minutes while teacher is on dashboard
+        const cleanupInterval = setInterval(checkSessionCleanup, 300000);
         return () => clearInterval(cleanupInterval);
     }, []);
 

@@ -20,12 +20,7 @@ export function getDeviceId() {
     return id
 }
 
-/**
- * Get browser + device fingerprint components.
- * CRITICAL FIX: We remove `getDeviceId()` (localStorage), `navigator.userAgent`, and `preciseGpsHash`
- * from the proxy fingerprint. This ensures the fingerprint remains IDENTICAL 
- * even if the student switches from Chrome to Edge to Brave on the same phone.
- */
+
 export function getDeviceFingerprint() {
     const nav = navigator
 
@@ -39,7 +34,7 @@ export function getDeviceFingerprint() {
         nav.maxTouchPoints || 0
     ].join('|')
 
-    // 2. Canvas Fingerprint: Rendering engine behavior (Stable across Chromium/Webkit)
+    
     let canvasHash = '';
     try {
         const canvas = document.createElement('canvas');
@@ -60,7 +55,7 @@ export function getDeviceFingerprint() {
         canvasHash = 'CanvasError';
     }
 
-    // 3. WebGL Renderer string: Most stable hardware ID
+    
     let webGL = '';
     try {
         const canvas = document.createElement('canvas');
@@ -84,11 +79,7 @@ export function getDeviceFingerprint() {
     }
 }
 
-/**
- * Try to get a Web Location device ID (requires user gesture + Location on).
- * This is the closest to a real Location ID that web allows.
- * Returns null if Location is unavailable or user cancels.
- */
+
 export async function getLocationDeviceId() {
     if (!navigator.geolocation?.getCurrentPosition) return null
     try {
@@ -110,9 +101,7 @@ export async function getLocationDeviceId() {
     }
 }
 
-/**
- * Format a device UUID to look like a MAC address (for display).
- */
+
 export function formatAsMac(uuid) {
     if (!uuid) return 'Unknown'
     const hex = uuid.replace(/-/g, '').substring(0, 12).toUpperCase()
@@ -120,9 +109,7 @@ export function formatAsMac(uuid) {
     return pairs.slice(0, 4).join(':') + ':★★:★★'
 }
 
-/**
- * Get a display-friendly device label
- */
+
 export function getDeviceLabel() {
     const ua = navigator.userAgent
     if (/android/i.test(ua)) return '📱 Android'
