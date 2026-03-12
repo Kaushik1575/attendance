@@ -121,15 +121,29 @@ export const markAttendance = async (req, res) => {
 
     // 4.6. Verify Location (Accuracy-Aware Geo-fence)
     const GEOFENCE_RADIUS = 50;
+    const HARD_LIMIT = 80; // Absolute max distance even with poor GPS
+    
     const distance = getDistance(session.teacher_lat, session.teacher_lng, lat, lng);
-    const gpsAccuracy = parseFloat(accuracy) || 0;
-    const teacherAccuracy = parseFloat(session.teacher_accuracy) || 0;
-    const studentAccuracy = parseFloat(accuracy) || 0;
+    
+    // Security: Cap the accuracy discount to prevent spoofing (Max 35m allowance)
+    const studentAccuracy = Math.min(parseFloat(accuracy) || 0, 35);
+    const teacherAccuracy = Math.min(parseFloat(session.teacher_accuracy) || 0, 35);
+    
     const effectiveDistance = Math.max(0, distance - studentAccuracy - teacherAccuracy);
 
+    // Security Block 1: Hard Limit Check (No one can be ~100m away regardless of accuracy)
+    if (distance > HARD_LIMIT) {
+        return res.status(403).json({
+            error: `LOCATION REJECTED: You are physically too far (${distance.toFixed(0)}m). You must be near the classroom to mark attendance.`,
+            distance: distance.toFixed(2),
+            allowed: false
+        });
+    }
+
+    // Security Block 2: Effective Distance Check (Matches the 50m rule)
     if (effectiveDistance > GEOFENCE_RADIUS) {
         return res.status(400).json({
-            error: `You are too far from the classroom (${distance.toFixed(0)}m away). combined GPS uncertainty is ±${(studentAccuracy + teacherAccuracy).toFixed(0)}m.`,
+            error: `OUT OF RANGE: Real distance is ${distance.toFixed(0)}m. After accounting for GPS accuracy (±${studentAccuracy.toFixed(0)}m), you are still outside the 50m zone.`,
             distance: distance.toFixed(2),
             accuracy: studentAccuracy,
             teacherAccuracy,

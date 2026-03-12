@@ -211,14 +211,17 @@ const StudentDashboard = () => {
         setLiveDistance(d);
 
         // --- INDUSTRIAL FIX: Accuracy-Adjusted Tolerance ---
-        // Subtract student error (accuracy) and teacher error (stored in session) from distance.
-        const teacherAcc = activeSession.teacher_accuracy || 0;
-        const effectiveDist = Math.max(0, d - locationAccuracy - teacherAcc);
+        const teacherAcc = Math.min(activeSession.teacher_accuracy || 0, 35);
+        const cappedAcc = Math.min(locationAccuracy || 0, 35);
+        const effectiveDist = Math.max(0, d - cappedAcc - teacherAcc);
 
-        if (locationAccuracy > 50 && effectiveDist > 50) {
+        // Security: If hard distance > 80m, always block regardless of accuracy
+        if (d > 80) {
+            setGpsStatus('blocked');
+        } else if (locationAccuracy > 50 && effectiveDist > 50) {
             setGpsStatus('scanning');
         } else {
-            // Strictly Enforce 50m rule
+            // Strictly Enforce 50m zone
             setGpsStatus(effectiveDist <= 50 ? 'ok' : 'blocked');
         }
     }, [activeSession, liveLocation, locationAccuracy, isDemoMode]);
@@ -265,8 +268,9 @@ const StudentDashboard = () => {
             }
 
             const dist = getDistance(activeSession.teacher_lat, activeSession.teacher_lng, loc.lat, loc.lng);
-            const teacherAcc = activeSession.teacher_accuracy || 0;
-            const effectiveDist = Math.max(0, dist - loc.accuracy - teacherAcc);
+            const teacherAcc = Math.min(activeSession.teacher_accuracy || 0, 35);
+            const cappedAcc = Math.min(loc.accuracy || 0, 35);
+            const effectiveDist = Math.max(0, dist - cappedAcc - teacherAcc);
 
             // Sync UI states with latest reading
             setDistance(dist);
@@ -274,10 +278,18 @@ const StudentDashboard = () => {
             setLocationAccuracy(loc.accuracy);
             setLiveLocation({ lat: loc.lat, lng: loc.lng });
 
-            // Clientside soft-check (matches backend logic)
-            // --- INDUSTRIAL FIX: Forgiving Range for Indoor Classrooms (50m strict) ---
+            // Hard Limit Check (80m)
+            if (dist > 80) {
+                const err = `CRITICAL: You are physically too far (${dist.toFixed(0)}m). No attendance possible beyond 80m radius.`;
+                setError(err);
+                toast.error(err);
+                setMarking(false);
+                return;
+            }
+
+            // Geo-fence Check (50m rule)
             if (effectiveDist > 50) {
-                const err = `Still too far (${dist.toFixed(0)}m). You must be within 50m of the classroom (after accounting for ±${loc.accuracy.toFixed(0)}m GPS error).`;
+                const err = `Outside Zone (${dist.toFixed(0)}m). After ±${cappedAcc.toFixed(0)}m accuracy adjustment, you are still outside the 50m classroom zone.`;
                 setError(err);
                 toast.error(err, { duration: 5000 });
                 setMarking(false);
@@ -457,9 +469,9 @@ const StudentDashboard = () => {
                                 <div style={{ fontSize: '1.25rem', fontWeight: 900, color: gpsStatus === 'ok' ? '#059669' : '#d97706', marginBottom: '0.75rem' }}>
                                     {liveDistance !== null ? (
                                         <>
-                                            {Math.max(0, liveDistance - locationAccuracy - (activeSession?.teacher_accuracy || 0)).toFixed(1)}m
+                                            {liveDistance.toFixed(1)}m
                                             <span style={{ fontSize: '0.75rem', color: '#94a3b8', fontWeight: 600, marginLeft: '0.5rem' }}>
-                                                (Raw: {liveDistance.toFixed(0)}m)
+                                                (±{locationAccuracy.toFixed(0)}m accuracy)
                                             </span>
                                         </>
                                     ) : 'Locating...'}
@@ -470,7 +482,12 @@ const StudentDashboard = () => {
                                     <div style={{
                                         position: 'absolute',
                                         left: 0, top: 0, bottom: 0,
-                                        width: liveDistance !== null ? `${Math.min(100, Math.max(5, (1 - (Math.max(0, liveDistance - locationAccuracy - (activeSession?.teacher_accuracy || 0)) / 50)) * 100))}%` : '0%',
+                                        width: liveDistance !== null ? (() => {
+                                            const tAcc = Math.min(activeSession?.teacher_accuracy || 0, 35);
+                                            const sAcc = Math.min(locationAccuracy || 0, 35);
+                                            const eff = Math.max(0, liveDistance - sAcc - tAcc);
+                                            return `${Math.min(100, Math.max(5, (1 - (eff / 50)) * 100))}%`;
+                                        })() : '0%',
                                         background: gpsStatus === 'ok' ? 'linear-gradient(90deg, #10b981, #34d399)' : '#f59e0b',
                                         transition: 'width 0.5s ease-out'
                                     }} />
