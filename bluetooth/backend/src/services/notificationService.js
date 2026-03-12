@@ -48,7 +48,12 @@ export const notifyAbsentees = async (sessionId, branch, section, semester, subj
 
         const dateStr = new Date().toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata', day: '2-digit', month: 'short', year: 'numeric' });
         const year = Math.ceil(parseInt(semester) / 2);
-        const branchYearSem = `${branch} / ${year} Year / ${semester} Sem`;
+        const ordinalSuffix = (n) => {
+            const s = ["th", "st", "nd", "rd"];
+            const v = n % 100;
+            return n + (s[(v - 20) % 10] || s[v] || s[0]);
+        };
+        const branchYearSem = `${branch} Branch, ${ordinalSuffix(year)} Year, ${ordinalSuffix(semester)} Semester`;
 
         if (!isResendConfigured) {
             console.log('--------------------------------------------------');
