@@ -166,16 +166,24 @@ const StudentDashboard = () => {
                         }
                     }
 
-                    // 2. STABILIZER: Use Exponential Smoothing (EMA)
+                    // 2. STABILIZER: Use Exponential Smoothing (EMA) with "Snap-to-Accuracy"
                     let stabilizedLat = lat;
                     let stabilizedLng = lng;
 
                     if (lastValidLoc.current) {
-                        // High accuracy = 80% weight to new position
-                        // Low accuracy = 20% weight to new position (slow movement)
-                        const alpha = acc < 20 ? 0.8 : 0.2; 
-                        stabilizedLat = (lat * alpha) + (lastValidLoc.current.lat * (1 - alpha));
-                        stabilizedLng = (lng * alpha) + (lastValidLoc.current.lng * (1 - alpha));
+                        // SNAPPING: If current accuracy is significantly better or this is our first good lock,
+                        // don't smooth - just jump to the better coordinate.
+                        const isSignificantlyBetter = acc < (lastValidLoc.current.accuracy - 10);
+                        
+                        if (isSignificantlyBetter || acc < 10) {
+                            stabilizedLat = lat;
+                            stabilizedLng = lng;
+                        } else {
+                            // Normal smoothing: High accuracy = 80% weight, Low accuracy = 20% weight
+                            const alpha = acc < 20 ? 0.8 : 0.2; 
+                            stabilizedLat = (lat * alpha) + (lastValidLoc.current.lat * (1 - alpha));
+                            stabilizedLng = (lng * alpha) + (lastValidLoc.current.lng * (1 - alpha));
+                        }
                     }
 
                     const newLoc = { lat: stabilizedLat, lng: stabilizedLng, accuracy: acc };
@@ -196,7 +204,7 @@ const StudentDashboard = () => {
                 },
                 {
                     enableHighAccuracy: true,
-                    maximumAge: 2000,
+                    maximumAge: 1000, // Reduced from 2000 for faster updates
                     timeout: 10000
                 }
             );
@@ -237,19 +245,19 @@ const StudentDashboard = () => {
         const d = getDistance(activeSession.teacher_lat, activeSession.teacher_lng, liveLocation.lat, liveLocation.lng);
         setLiveDistance(d);
 
-        // --- INDUSTRIAL FIX: Accuracy-Adjusted Tolerance ---
-        const teacherAcc = Math.min(activeSession.teacher_accuracy || 0, 35);
-        const cappedAcc = Math.min(locationAccuracy || 0, 35);
+        // --- NEW INDUSTRIAL LIMITS ---
+        const teacherAcc = Math.min(activeSession.teacher_accuracy || 0, 40); 
+        const cappedAcc = Math.min(locationAccuracy || 0, 40);
         const effectiveDist = Math.max(0, d - cappedAcc - teacherAcc);
 
-        // Security: If hard distance > 80m, always block regardless of accuracy
-        if (d > 80) {
+        // If raw distance is > 110m (user restored 80, but 110 is safer for jitter)
+        if (d > 110) {
             setGpsStatus('blocked');
-        } else if (locationAccuracy > 50 && effectiveDist > 50) {
-            setGpsStatus('scanning');
+        } else if (effectiveDist > 50) {
+            // Show "Scanning" (Optimizing) if we are close but accuracy is still poor
+            setGpsStatus(locationAccuracy > 45 ? 'scanning' : 'blocked');
         } else {
-            // Strictly Enforce 50m zone
-            setGpsStatus(effectiveDist <= 50 ? 'ok' : 'blocked');
+            setGpsStatus('ok');
         }
     }, [activeSession, liveLocation, locationAccuracy, isDemoMode]);
 
@@ -295,8 +303,8 @@ const StudentDashboard = () => {
             }
 
             const dist = getDistance(activeSession.teacher_lat, activeSession.teacher_lng, loc.lat, loc.lng);
-            const teacherAcc = Math.min(activeSession.teacher_accuracy || 0, 35);
-            const cappedAcc = Math.min(loc.accuracy || 0, 35);
+            const teacherAcc = Math.min(activeSession.teacher_accuracy || 0, 40);
+            const cappedAcc = Math.min(loc.accuracy || 0, 40);
             const effectiveDist = Math.max(0, dist - cappedAcc - teacherAcc);
 
             // Sync UI states with latest reading
@@ -305,9 +313,9 @@ const StudentDashboard = () => {
             setLocationAccuracy(loc.accuracy);
             setLiveLocation({ lat: loc.lat, lng: loc.lng });
 
-            // Hard Limit Check (80m)
-            if (dist > 80) {
-                const err = `CRITICAL: You are physically too far (${dist.toFixed(0)}m). No attendance possible beyond 80m radius.`;
+            // Hard Limit Check (110m)
+            if (dist > 110) {
+                const err = `CRITICAL: You are physically too far (${dist.toFixed(0)}m). No attendance possible beyond 110m radius.`;
                 setError(err);
                 toast.error(err);
                 setMarking(false);
@@ -378,7 +386,7 @@ const StudentDashboard = () => {
 
     const gpsColors = {
         idle: { bg: '#f8fafc', border: '#e2e8f0', text: '#64748b', icon: <Navigation size={22} color="#94a3b8" /> },
-        scanning: { bg: '#eff6ff', border: '#bfdbfe', text: '#1d4ed8', icon: <Loader2 size={22} color="#3b82f6" className="animate-spin" /> },
+        scanning: { bg: '#eff6ff', border: '#bfdbfe', text: '#1d4ed8', icon: <Loader2 size={22} color="#3b82f6" className="animate-spin" />, label: 'Optimizing GPS...' },
         ok: { bg: '#f0fdf4', border: '#86efac', text: '#15803d', icon: <CheckCircle2 size={22} color="#22c55e" /> },
         blocked: { bg: '#fef2f2', border: '#fca5a5', text: '#b91c1c', icon: <XCircle size={22} color="#ef4444" /> },
         error: { bg: '#fff7ed', border: '#fdba74', text: '#c2410c', icon: <AlertCircle size={22} color="#f97316" /> },
@@ -702,9 +710,11 @@ const StudentDashboard = () => {
                                                     ) : (
                                                         <div style={{ textAlign: 'center', padding: '3.5rem 2rem', background: '#f8fafc', borderRadius: '24px', border: '1px dashed #e2e8f0', marginTop: '1.25rem' }}>
                                                             <div style={{ width: '64px', height: '64px', background: 'white', border: '1px solid #e2e8f0', borderRadius: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.25rem', boxShadow: '0 4px 12px rgba(0,0,0,0.03)' }}>
-                                                                <MapPin size={32} color="#cbd5e1" />
+                                                                {gps.icon}
                                                             </div>
-                                                            <p style={{ color: '#64748b', fontWeight: 600, fontSize: '0.95rem' }}>Move closer to the classroom to unlock the attendance verification portal.</p>
+                                                            <p style={{ color: '#64748b', fontWeight: 600, fontSize: '0.95rem' }}>
+                                                                {gps.label || 'Move closer to the classroom to unlock the attendance verification portal.'}
+                                                            </p>
                                                         </div>
                                                     )}
                                                 </>

@@ -121,17 +121,17 @@ export const markAttendance = async (req, res) => {
 
     // 4.6. Verify Location (Accuracy-Aware Geo-fence)
     const GEOFENCE_RADIUS = 50;
-    const HARD_LIMIT = 80; // Absolute max distance even with poor GPS
+    const HARD_LIMIT = 110; // Loosened from 80m to handle jitter in large classes
     
     const distance = getDistance(session.teacher_lat, session.teacher_lng, lat, lng);
     
-    // Security: Cap the accuracy discount to prevent spoofing (Max 35m allowance)
-    const studentAccuracy = Math.min(parseFloat(accuracy) || 0, 35);
-    const teacherAccuracy = Math.min(parseFloat(session.teacher_accuracy) || 0, 35);
+    // Security: Cap the accuracy discount to prevent spoofing (Max 40m allowance)
+    const studentAccuracy = Math.min(parseFloat(accuracy) || 0, 40);
+    const teacherAccuracy = Math.min(parseFloat(session.teacher_accuracy) || 0, 40);
     
     const effectiveDistance = Math.max(0, distance - studentAccuracy - teacherAccuracy);
 
-    // Security Block 1: Hard Limit Check (No one can be ~100m away regardless of accuracy)
+    // Security Block 1: Hard Limit Check
     if (distance > HARD_LIMIT) {
         return res.status(403).json({
             error: `LOCATION REJECTED: You are physically too far (${distance.toFixed(0)}m). You must be near the classroom to mark attendance.`,
