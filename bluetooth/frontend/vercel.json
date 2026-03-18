@@ -3,7 +3,7 @@
     "routes": [
         {
             "src": "/api/(.*)",
-            "dest": "https://geoattend-murex.vercel.app/api/$1"
+            "dest": "https://attendance-murex-phi.vercel.app/api/$1"
         },
         {
             "src": "/assets/(.*)",
