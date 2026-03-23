@@ -18,46 +18,52 @@ export const sendOtp = async (req, res) => {
     console.log(`[AUTH] Sending OTP for ${email}: ${otp}`);
 
     if (isResendConfigured) {
-        res.json({ message: 'Verification code sent!' });
+        try {
+            console.log(`[AUTH] Sending OTP to ${email} from ${SENDER_EMAIL}...`);
+            const isFaculty = req.body.isTeacher === true || email.includes('faculty') || email.includes('teacher');
+            const roleName = isFaculty ? 'Faculty/Staff' : 'Student';
+            const subjectLine = isFaculty ? 'GeoAttend Faculty Authentication' : 'Verify your Student Account';
 
-        (async () => {
-            try {
-                console.log(`[AUTH] Background: Sending OTP to ${email} from ${SENDER_EMAIL}...`);
-                const isFaculty = req.body.isTeacher === true || email.includes('faculty') || email.includes('teacher');
-                const roleName = isFaculty ? 'Faculty/Staff' : 'Student';
-                const subjectLine = isFaculty ? 'GeoAttend Faculty Authentication' : 'Verify your Student Account';
-
-                const { data, error } = await resend.emails.send({
-                    from: `GeoAttend Authentication <${SENDER_EMAIL}>`,
-                    to: email,
-                    subject: subjectLine,
-                    html: `
-                        <div style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; max-width: 500px; margin: 0 auto; padding: 30px; border: 1px solid #e2e8f0; border-radius: 12px; background-color: #ffffff; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);">
-                            <div style="text-align: center; margin-bottom: 25px;">
-                                <h1 style="color: #1e3a8a; margin: 0; font-size: 24px;">GeoAttend System</h1>
-                            </div>
-                            <h2 style="color: #334155; font-size: 18px; border-bottom: 2px solid #f1f5f9; padding-bottom: 10px; margin-bottom: 20px;">${roleName} Verification</h2>
-                            <p style="color: #475569; font-size: 15px; line-height: 1.6;">Hello,</p>
-                            <p style="color: #475569; font-size: 15px; line-height: 1.6;">A registration attempt was made using this email address. To complete your account setup, please use the following secure verification code:</p>
-                            <div style="background: #f8fafc; padding: 25px; text-align: center; border-radius: 8px; margin: 30px 0; border: 1px solid #e2e8f0;">
-                                <span style="font-size: 36px; font-weight: 800; letter-spacing: 8px; color: #4f46e5;">${otp}</span>
-                            </div>
-                            <p style="font-size: 13px; color: #ef4444; font-weight: bold; margin-top: 10px;">⚠️ This code will expire in exactly 10 minutes.</p>
-                            <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 30px 0 20px 0;" />
-                            <p style="font-size: 12px; color: #94a3b8; line-height: 1.5; margin: 0;">
-                                If you did not request this verification, please ignore this email. Your information remains secure.<br/><br/>
-                                System generated transmission • Do not reply directly to this email.
-                            </p>
+            const { data, error } = await resend.emails.send({
+                from: `GeoAttend Authentication <${SENDER_EMAIL}>`,
+                to: email,
+                subject: subjectLine,
+                html: `
+                    <div style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; max-width: 500px; margin: 0 auto; padding: 30px; border: 1px solid #e2e8f0; border-radius: 12px; background-color: #ffffff; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);">
+                        <div style="text-align: center; margin-bottom: 25px;">
+                            <h1 style="color: #1e3a8a; margin: 0; font-size: 24px;">GeoAttend System</h1>
                         </div>
-                    `
-                });
+                        <h2 style="color: #334155; font-size: 18px; border-bottom: 2px solid #f1f5f9; padding-bottom: 10px; margin-bottom: 20px;">${roleName} Verification</h2>
+                        <p style="color: #475569; font-size: 15px; line-height: 1.6;">Hello,</p>
+                        <p style="color: #475569; font-size: 15px; line-height: 1.6;">A registration attempt was made using this email address. To complete your account setup, please use the following secure verification code:</p>
+                        <div style="background: #f8fafc; padding: 25px; text-align: center; border-radius: 8px; margin: 30px 0; border: 1px solid #e2e8f0;">
+                            <span style="font-size: 36px; font-weight: 800; letter-spacing: 8px; color: #4f46e5;">${otp}</span>
+                        </div>
+                        <p style="font-size: 13px; color: #ef4444; font-weight: bold; margin-top: 10px;">⚠️ This code will expire in exactly 10 minutes.</p>
+                        <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 30px 0 20px 0;" />
+                        <p style="font-size: 12px; color: #94a3b8; line-height: 1.5; margin: 0;">
+                            If you did not request this verification, please ignore this email. Your information remains secure.<br/><br/>
+                            System generated transmission • Do not reply directly to this email.
+                        </p>
+                    </div>
+                `
+            });
 
-                if (error) console.error('[AUTH] Background Resend Error:', error);
-                else console.log(`[AUTH] Background Email Success ID: ${data.id}`);
-            } catch (err) {
-                console.error('[AUTH] Background Unexpected Error:', err);
+            if (error) {
+                console.error('[AUTH] Resend Error:', error);
+                // Return detailed error if in dev, but generic message in prod
+                return res.status(500).json({ 
+                    error: `Email Service Error: ${error.message || 'Could not send verification code.'}`,
+                    details: error
+                });
             }
-        })();
+
+            console.log(`[AUTH] Email Success ID: ${data.id}`);
+            res.json({ message: 'Verification code sent!' });
+        } catch (err) {
+            console.error('[AUTH] Unexpected Email Error:', err);
+            res.status(500).json({ error: 'Unexpected error while sending email. Please check server logs.' });
+        }
     } else {
         console.log(`[DEV MODE] OTP for ${email}: ${otp}`);
         res.json({ message: 'OTP generated (Mock Mode - check server console)', otp });
