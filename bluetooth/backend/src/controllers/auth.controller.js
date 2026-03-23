@@ -100,9 +100,27 @@ export const registerStudent = async (req, res) => {
     };
 
     if (supabase) {
+        // 1. Check if Email or Roll Number already exists in STUDENTS only
+        const { data: existingStudent } = await supabase
+            .from('students')
+            .select('email, roll_no')
+            .or(`email.eq.${email},roll_no.eq.${roll_no}`)
+            .maybeSingle();
+
+        if (existingStudent) {
+            if (existingStudent.email.toLowerCase() === email.toLowerCase()) {
+                return res.status(400).json({ error: 'Registration failed: This email is already associated with a student account.' });
+            }
+            if (existingStudent.roll_no === roll_no) {
+                return res.status(400).json({ error: 'Registration failed: This Roll Number is already registered.' });
+            }
+        }
+
         const { data, error } = await supabase.from('students').insert([studentData]).select();
         if (error) {
-            if (error.code === '23505') return res.status(400).json({ error: 'Email or Roll Number already exists' });
+            if (error.code === '23505') {
+                return res.status(400).json({ error: 'Unique conflict: A student with this Email or Roll Number already exists.' });
+            }
             return res.status(400).json({ error: error.message });
         }
         otpStore.delete(email);
@@ -135,9 +153,27 @@ export const registerTeacher = async (req, res) => {
     const teacherData = { name, username, mobile, email, password_hash, role: 'teacher' };
 
     if (supabase) {
+        // 1. Check if Username or Email already exists in TEACHERS only
+        const { data: existingTeacher } = await supabase
+            .from('teachers')
+            .select('email, username')
+            .or(`email.eq.${email},username.eq.${username}`)
+            .maybeSingle();
+
+        if (existingTeacher) {
+            if (existingTeacher.email.toLowerCase() === email.toLowerCase()) {
+                return res.status(400).json({ error: 'This email is already registered as a Teacher.' });
+            }
+            if (existingTeacher.username === username) {
+                return res.status(400).json({ error: 'Username already taken. Please choose another.' });
+            }
+        }
+
         const { data, error } = await supabase.from('teachers').insert([teacherData]).select();
         if (error) {
-            if (error.code === '23505') return res.status(400).json({ error: 'Email or Username already exists' });
+            if (error.code === '23505') {
+                return res.status(400).json({ error: 'Account with this Email or Username already exists' });
+            }
             return res.status(400).json({ error: error.message });
         }
         otpStore.delete(email);
